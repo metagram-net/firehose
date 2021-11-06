@@ -1,0 +1,8 @@
+name: Firehose
+
+sources:
+  go: true
+
+allowed:
+  - bsd-3-clause
+  - mit

@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"errors"
+	"log"
+	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -17,8 +21,16 @@ func Main() error {
 		newCmd(),
 		setupCmd(),
 	)
-	// TODO: Use ExecuteContext to get nicer cancellation
-	return root.Execute()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	go func() {
+		<-ctx.Done()
+		stop()
+		log.Print("Interrupt received, cleaning up before quitting. Interrupt again to force-quit.")
+	}()
+
+	return root.ExecuteContext(ctx)
 }
 
 func rootCmd() *cobra.Command {

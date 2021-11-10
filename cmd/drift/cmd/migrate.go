@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"github.com/blockloop/scan"
 	"github.com/jackc/pgconn"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
+	"github.com/metagram-net/firehose/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -25,16 +27,18 @@ func migrateCmd() *cobra.Command {
 		Use:   "migrate",
 		Short: "Run migrations",
 		Args:  cobra.NoArgs,
-		Run: func(_ *cobra.Command, _ []string) {
-			if err := migrate(viper.GetString("migrations-dir")); err != nil {
+		Run: func(cmd *cobra.Command, _ []string) {
+			err := migrate(cmd.Context(), viper.GetString("migrations-dir"))
+			if err != nil {
 				log.Fatal(err.Error())
 			}
+			log.Print("All migrations applied")
 		},
 	}
 	return cmd
 }
 
-func migrate(migrationsDir string) error {
+func migrate(ctx context.Context, migrationsDir string) error {
 	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return fmt.Errorf("could not open database connection: %w", err)
@@ -57,7 +61,7 @@ func migrate(migrationsDir string) error {
 	needed := diff(records, files)
 	for _, f := range needed {
 		log.Printf("applying %s", f.Name)
-		if err := apply(db, f); err != nil {
+		if err := apply(ctx, db, f); err != nil {
 			return err
 		}
 	}
@@ -163,13 +167,12 @@ func diff(applied []migrationRecord, files []migrationFile) []migrationFile {
 	return needed
 }
 
-func apply(db *sql.DB, f migrationFile) error {
+func apply(ctx context.Context, db *sql.DB, f migrationFile) error {
 	if skipTx(f.Content) {
 		return run(db, f.Content)
 	}
 
-	// TODO: thread a context through here so this can be canceled cleanly
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

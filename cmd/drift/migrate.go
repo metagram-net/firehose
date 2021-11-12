@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -189,14 +189,12 @@ func applyNoTx(db *sql.DB, f migrationFile) error {
 	return run(db, f.Path)
 }
 
-var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
 type execable interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
 func claim(tx execable, id int, slug string) error {
-	query, args, err := psql.Select().
+	query, args, err := db.Pq.Select().
 		Column("_drift_claim_migration("+sq.Placeholders(2)+")", id, slug).
 		ToSql()
 	if err != nil {

@@ -21,7 +21,6 @@ linters:
     - errorlint
     - exhaustive
     - exportloopref
-    - gci
     - godot
     - goerr113
     - goimports
@@ -45,4 +44,3 @@ linters:
     - unparam
     - unused
     - wastedassign
-    - wrapcheck

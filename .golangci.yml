@@ -33,7 +33,7 @@ linters:
     - nilerr
     - noctx
     - nolintlint
-    - rowserrcheck
+    # TODO: Re-enable rowserrcheck once I can say that github.com/blockloop/scan checks the error.
     - sqlclosecheck
     - staticcheck
     - tagliatelle

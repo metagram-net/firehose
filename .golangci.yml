@@ -3,7 +3,6 @@ linters:
   enable:
     - bodyclose
     - contextcheck
-    - deadcode
     - dupl
     - durationcheck
     - errcheck
@@ -28,7 +27,6 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
-    - structcheck
     - tagliatelle
     - tenv
     - testpackage
@@ -36,6 +34,5 @@ linters:
     - unconvert
     - unparam
     - unused
-    - varcheck
     - wastedassign
     - wrapcheck

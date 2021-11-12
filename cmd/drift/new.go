@@ -6,43 +6,17 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-type wholeNum int64
-
-func (n *wholeNum) String() string {
-	if n == nil {
-		return ""
-	}
-	return strconv.Itoa(int(*n))
-}
-
-func (n *wholeNum) Set(s string) error {
-	i, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return fmt.Errorf("not a valid integer: %w", err)
-	}
-	if i < 0 {
-		return fmt.Errorf("cannot be negative: %s", s)
-	}
-	*n = wholeNum(i)
-	return nil
-}
-
-func (i *wholeNum) Type() string {
-	return "positive_integer"
-}
-
 func newCmd() *cobra.Command {
 	var (
 		// Set default ID out of range in case someone wants to create
 		// migration 0.
-		id   wholeNum = -1
+		id   migrationID = -1
 		slug string
 	)
 
@@ -61,17 +35,18 @@ func newCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.Var(&id, "id", "Migration ID override")
 	flags.StringVar(&slug, "slug", "", "Short text describing the migration")
-	cmd.MarkFlagRequired("slug")
+	must(cmd.MarkFlagRequired("slug"))
 	return cmd
 }
 
-func newFile(migrationsDir string, id wholeNum, slug string) (string, error) {
+func newFile(migrationsDir string, id migrationID, slug string) (string, error) {
 	if id == -1 {
+		var err error
 		ts := time.Now().Unix()
-		if ts < 0 {
-			return "", fmt.Errorf("migration ID cannot be negative: %d", ts)
+		id, err = newMigrationID(ts)
+		if err != nil {
+			return "", fmt.Errorf("invalid migration ID: %w", err)
 		}
-		id = wholeNum(ts)
 	}
 
 	files, err := available(migrationsDir)
@@ -80,13 +55,15 @@ func newFile(migrationsDir string, id wholeNum, slug string) (string, error) {
 	}
 	for _, f := range files {
 		if f.ID == int(id) {
-			return "", fmt.Errorf("migration %d already exists: %s", id, f.Name)
+			return "", fmt.Errorf("%w: %d: %s", ErrDuplicateID, id, f.Name)
 		}
 	}
 
 	slug = slugify(slug)
 	name := fmt.Sprintf("%d-%s.sql", id, slug)
 	path := filepath.Join(migrationsDir, name)
+
+	//#nosec G306 // Normal permissions for non-sensitive files.
 	return path, os.WriteFile(path, []byte(template), 0o644)
 }
 

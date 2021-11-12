@@ -26,7 +26,7 @@ func rootCmd() *cobra.Command {
 	}
 	flags := cmd.Flags()
 	flags.String("migrations-dir", defaultMigrationsDir, "Directory containing migration files")
-	viper.BindPFlags(flags)
+	must(viper.BindPFlags(flags))
 
 	cmd.AddCommand(
 		migrateCmd(),
@@ -34,4 +34,10 @@ func rootCmd() *cobra.Command {
 		setupCmd(),
 	)
 	return cmd
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

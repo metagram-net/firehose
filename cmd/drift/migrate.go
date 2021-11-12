@@ -110,6 +110,7 @@ func mustInt(s string) int {
 }
 
 var ErrDuplicateID = errors.New("duplicate migration ID")
+var ErrInvalidFilename = errors.New("filename does not fit migration pattern")
 
 func available(dir string) ([]migrationFile, error) {
 	files, err := os.ReadDir(dir)
@@ -122,7 +123,7 @@ func available(dir string) ([]migrationFile, error) {
 		name := f.Name()
 		m := reFname.FindStringSubmatch(name)
 		if m == nil {
-			return nil, fmt.Errorf("filename does not fit migration pattern: %s", name)
+			return nil, fmt.Errorf("%w: %s", ErrInvalidFilename, name)
 		}
 		path := filepath.Join(dir, name)
 		content, err := os.ReadFile(path)
@@ -183,10 +184,6 @@ func apply(ctx context.Context, db *sql.DB, f migrationFile) error {
 		return err
 	}
 	return tx.Commit()
-}
-
-func applyNoTx(db *sql.DB, f migrationFile) error {
-	return run(db, f.Path)
 }
 
 type execable interface {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
+	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
@@ -30,6 +31,7 @@ func run() error {
 	defer db.Close()
 
 	r := mux.NewRouter()
+	r.Use(api.LogMiddleware)
 	wellknown.Register(r.PathPrefix("/.well-known/").Subrouter())
 	auth.Register(r.PathPrefix("/auth/").Subrouter(), db)
 	drop.Register(r.PathPrefix("/v1/drops/").Subrouter(), db)

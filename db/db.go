@@ -4,7 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/Masterminds/squirrel"
 )
+
+var Pq = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+
+// TODO: Use interfaces to model ReadOnly vs. ReadWrite
 
 type Queryable interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)

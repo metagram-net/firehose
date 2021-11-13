@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-
+	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
 )
@@ -31,14 +31,11 @@ func run() error {
 
 	r := mux.NewRouter()
 	wellknown.Register(r.PathPrefix("/.well-known/").Subrouter())
+	auth.Register(r.PathPrefix("/auth/").Subrouter(), db)
 	drop.Register(r.PathPrefix("/v1/drops/").Subrouter(), db)
 
 	port := 8002
 	addr := fmt.Sprintf(":%d", port)
 	log.Printf("Listening on %s\n", addr)
 	return http.ListenAndServe(addr, r)
-}
-
-func notFound(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
 }

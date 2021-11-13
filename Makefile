@@ -40,3 +40,13 @@ migrate:
 .PHONY: lint
 lint:
 	golangci-lint run
+
+.PHONY: test-hurl
+test-hurl:
+	hurl \
+		--progress \
+		--summary \
+		--output /dev/null \
+		--variable root_url="$${TEST_API_ROOT}" \
+		--variable api_key="$${TEST_API_KEY}" \
+		./tests/hurl/*

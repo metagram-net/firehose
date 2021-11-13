@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/blockloop/scan"
@@ -43,6 +44,11 @@ func (p Plaintext) String() string {
 
 func (p Plaintext) Hash() [32]byte {
 	return sha256.Sum256(p.bytes)
+}
+
+func (p Plaintext) byteaHex() string {
+	hash := p.Hash()
+	return fmt.Sprintf("\\x%x", hash)
 }
 
 func generate() (Plaintext, error) {
@@ -89,7 +95,7 @@ func Find(ctx context.Context, tx db.Queryable, plain Plaintext) (*Record, error
 	query, args, err := db.Pq.
 		Select("*").
 		From("api_keys").
-		Where(sq.Eq{"hashed_secret": plain.Hash()}).
+		Where(sq.Eq{"hashed_secret": plain.byteaHex()}).
 		ToSql()
 	if err != nil {
 		return nil, err
@@ -117,7 +123,7 @@ func Delete(ctx context.Context, tx db.Queryable, id uuid.UUID) error {
 func DeleteByPlaintext(ctx context.Context, tx db.Queryable, plain Plaintext) error {
 	query, args, err := db.Pq.
 		Delete("api_keys").
-		Where(sq.Eq{"hashed_secret": plain.Hash()}).
+		Where(sq.Eq{"hashed_secret": plain.byteaHex()}).
 		ToSql()
 	if err != nil {
 		return err

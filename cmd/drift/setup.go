@@ -12,10 +12,11 @@ import (
 
 func setupCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "setup",
-		Aliases: []string{"init"},
-		Short:   "Set up the migrations directory",
-		Args:    cobra.NoArgs,
+		Use:          "setup",
+		Aliases:      []string{"init"},
+		Short:        "Set up the migrations directory",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
 		Run: func(_ *cobra.Command, _ []string) {
 			path, err := setup(viper.GetString("migrations-dir"))
 			if err != nil {

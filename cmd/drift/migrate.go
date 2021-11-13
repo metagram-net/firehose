@@ -24,27 +24,29 @@ import (
 
 func migrateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "migrate",
-		Short: "Run migrations",
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, _ []string) {
-			err := migrate(cmd.Context(), viper.GetString("migrations-dir"))
+		Use:          "migrate",
+		Short:        "Run migrations",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			db, err := sql.Open("pgx", viper.GetString("database-url"))
 			if err != nil {
-				log.Fatal(err.Error())
+				return fmt.Errorf("could not open database connection: %w", err)
+			}
+			defer db.Close()
+
+			err = migrate(cmd.Context(), db, viper.GetString("migrations-dir"))
+			if err != nil {
+				return err
 			}
 			log.Print("All migrations applied")
+			return nil
 		},
 	}
 	return cmd
 }
 
-func migrate(ctx context.Context, migrationsDir string) error {
-	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		return fmt.Errorf("could not open database connection: %w", err)
-	}
-	defer db.Close()
-
+func migrate(ctx context.Context, db *sql.DB, migrationsDir string) error {
 	// 1. select * from schema_migrations
 	records, err := applied(db)
 	if err != nil {
@@ -60,7 +62,7 @@ func migrate(ctx context.Context, migrationsDir string) error {
 	// 3. diff IDs
 	needed := diff(records, files)
 	for _, f := range needed {
-		log.Printf("applying %s", f.Name)
+		log.Printf("Applying %s", f.Name)
 		if err := apply(ctx, db, f); err != nil {
 			return err
 		}

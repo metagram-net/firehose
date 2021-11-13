@@ -16,7 +16,7 @@ func rootCmd() *cobra.Command {
 		Version: "0.1.0",
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			err := viper.ReadInConfig()
-			var notFound *viper.ConfigFileNotFoundError
+			var notFound viper.ConfigFileNotFoundError
 			if errors.As(err, &notFound) {
 				// No config file needed, use the defaults.
 				return nil
@@ -26,7 +26,7 @@ func rootCmd() *cobra.Command {
 	}
 	flags := cmd.Flags()
 	flags.String("migrations-dir", defaultMigrationsDir, "Directory containing migration files")
-	must(viper.BindPFlags(flags))
+	viper.BindPFlags(flags)
 
 	cmd.AddCommand(
 		migrateCmd(),
@@ -34,10 +34,4 @@ func rootCmd() *cobra.Command {
 		setupCmd(),
 	)
 	return cmd
-}
-
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
 }

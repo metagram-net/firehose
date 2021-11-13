@@ -21,9 +21,10 @@ func newCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "new",
-		Short: "Create a new migration file",
-		Args:  cobra.NoArgs,
+		Use:          "new",
+		Short:        "Create a new migration file",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			path, err := newFile(viper.GetString("migrations-dir"), id, slug)
 			if err != nil {
@@ -35,7 +36,7 @@ func newCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.Var(&id, "id", "Migration ID override")
 	flags.StringVar(&slug, "slug", "", "Short text describing the migration")
-	must(cmd.MarkFlagRequired("slug"))
+	cmd.MarkFlagRequired("slug")
 	return cmd
 }
 

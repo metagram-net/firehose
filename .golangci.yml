@@ -44,3 +44,8 @@ linters:
     - unparam
     - unused
     - wastedassign
+linters-settings:
+  errcheck:
+    exclude-functions:
+      - (*github.com/spf13/cobra.Command).MarkFlagRequired
+      - github.com/spf13/viper.BindPFlags

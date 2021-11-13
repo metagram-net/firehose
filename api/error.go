@@ -36,13 +36,12 @@ var ErrUnhandled = Error{
 }
 
 func WriteError(w http.ResponseWriter, err error) error {
-	var apiErr *Error
-	if !errors.As(err, &apiErr) {
+	var e Error
+	if !errors.As(err, &e) {
 		log.Printf("Unhandled error: %s", err.Error())
-		apiErr = &ErrUnhandled
+		e = ErrUnhandled
 	}
 
-	e := *apiErr
 	w.WriteHeader(e.Status)
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(map[string]string{

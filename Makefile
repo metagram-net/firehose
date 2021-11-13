@@ -50,3 +50,8 @@ test-hurl:
 		--variable root_url="$${TEST_API_ROOT}" \
 		--variable api_key="$${TEST_API_KEY}" \
 		./tests/hurl/*
+
+.PHONY: licensed
+licensed:
+	go mod tidy
+	licensed status

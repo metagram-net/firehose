@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 type httpStatus = int
@@ -35,10 +36,10 @@ var ErrUnhandled = Error{
 	Message: "Oops, sorry! There's an unhandled error in here somewhere.",
 }
 
-func WriteError(w http.ResponseWriter, err error) error {
+func WriteError(log *zap.Logger, w http.ResponseWriter, err error) error {
 	var e Error
 	if !errors.As(err, &e) {
-		log.Printf("Unhandled error: %s", err.Error())
+		log.Warn("Unhandled error", zap.Error(err))
 		e = ErrUnhandled
 	}
 
@@ -55,15 +56,15 @@ func WriteResult(w http.ResponseWriter, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func Respond(w http.ResponseWriter, v interface{}, err error) {
+func Respond(log *zap.Logger, w http.ResponseWriter, v interface{}, err error) {
 	var werr error
 	if err == nil {
 		werr = WriteResult(w, v)
 	} else {
-		werr = WriteError(w, err)
+		werr = WriteError(log, w, err)
 	}
 	if werr != nil {
-		// Since we couldn't write the response, give up on this whole request.
+		log.Error("Could not write response, giving up", zap.Error(werr))
 		panic(werr)
 	}
 }

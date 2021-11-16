@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth/apikey"
 	"github.com/metagram-net/firehose/db"
+	"go.uber.org/zap"
 )
 
 type Record struct {
@@ -67,7 +67,7 @@ func Find(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Record, error) {
 	return &r, scan.RowStrict(&r, rows)
 }
 
-func FromRequest(ctx context.Context, tx db.Queryable, req *http.Request) (*Record, error) {
+func FromRequest(ctx context.Context, log *zap.Logger, tx db.Queryable, req *http.Request) (*Record, error) {
 	// Based on net/http.Request.BasicAuth. Changed for Bearer auth
 	auth := req.Header.Get("Authorization")
 	if auth == "" {
@@ -80,18 +80,17 @@ func FromRequest(ctx context.Context, tx db.Queryable, req *http.Request) (*Reco
 
 	token, err := apikey.NewPlaintext(auth[len(prefix):])
 	if err != nil {
-		// TODO(start-here): real logging
-		log.Printf("Could not parse token: %s", err.Error())
+		log.Warn("Could not parse token", zap.Error(err))
 		return nil, ErrInvalidAuthz
 	}
 	key, err := apikey.Find(ctx, tx, token)
 	if err != nil {
-		log.Printf("Could not find API key: %s", err.Error())
+		log.Warn("Could not find API key by token", zap.Error(err))
 		return nil, ErrInvalidAuthz
 	}
 	u, err := Find(ctx, tx, key.UserID)
 	if err != nil {
-		log.Printf("Could not find user: %s", err.Error())
+		log.Warn("Could not find user by ID", zap.Error(err))
 		return nil, ErrInvalidAuthz
 	}
 	return u, nil

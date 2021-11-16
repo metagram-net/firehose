@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,12 +24,13 @@ func newCmd() *cobra.Command {
 		Short:        "Create a new migration file",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path, err := newFile(viper.GetString("migrations-dir"), id, slug)
 			if err != nil {
-				log.Fatal(err.Error())
+				return err
 			}
 			fmt.Println(path)
+			return nil
 		},
 	}
 	flags := cmd.Flags()

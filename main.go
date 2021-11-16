@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -13,31 +12,47 @@ import (
 	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
+	"go.uber.org/zap"
 )
 
 func main() {
-	if err := run(); err != nil {
-		// TODO: graceful shutdown
-		log.Fatal(err)
+	log, err := api.NewLogger()
+	if err != nil {
+		panic(err)
 	}
-	log.Print("Clean shutdown. Bye! 👋")
-}
 
-func run() error {
+	log.Info("Starting database connection pool")
 	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		return err
+		panic(err)
 	}
 	defer db.Close()
 
-	r := mux.NewRouter()
-	r.Use(api.LogMiddleware)
-	wellknown.Register(r.PathPrefix("/.well-known/").Subrouter())
-	auth.Register(r.PathPrefix("/auth/").Subrouter(), db)
-	drop.Register(r.PathPrefix("/v1/drops/").Subrouter(), db)
+	srv := server(log, db)
 
+	// TODO(prod): Take host:port from config/env
 	port := 8002
 	addr := fmt.Sprintf(":%d", port)
-	log.Printf("Listening on %s\n", addr)
-	return http.ListenAndServe(addr, r)
+	log.Info("Listening", zap.String("address", addr))
+	if err := http.ListenAndServe(addr, srv); err != nil {
+		// TODO(prod): graceful shutdown
+		log.Fatal("Error during shutdown", zap.Error(err))
+	}
+
+	log.Info("Clean shutdown. Bye! 👋")
+	if err := log.Sync(); err != nil {
+		panic(err)
+	}
+}
+
+func server(log *zap.Logger, db *sql.DB) *mux.Router {
+	r := mux.NewRouter()
+
+	r.Use(api.NewLogMiddleware(log))
+
+	wellknown.Register(r.PathPrefix("/.well-known/").Subrouter())
+	auth.Register(r.PathPrefix("/auth/").Subrouter(), db, log)
+	drop.Register(r.PathPrefix("/v1/drops/").Subrouter(), db, log)
+
+	return r
 }

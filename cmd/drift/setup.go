@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -17,12 +16,13 @@ func setupCmd() *cobra.Command {
 		Short:        "Set up the migrations directory",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		Run: func(_ *cobra.Command, _ []string) {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			path, err := setup(viper.GetString("migrations-dir"))
 			if err != nil {
-				log.Fatal(err.Error())
+				return err
 			}
 			fmt.Printf("Wrote %s\n", path)
+			return nil
 		},
 	}
 	return cmd

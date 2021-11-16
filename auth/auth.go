@@ -10,16 +10,17 @@ import (
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/db"
+	"go.uber.org/zap"
 )
 
-func Register(r *mux.Router, db *sql.DB) {
+func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	r.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := api.Context()
 		defer cancel()
 
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
-			api.Respond(w, nil, err)
+			api.Respond(log, w, nil, err)
 			return
 		}
 		// Commit the transaction to avoid leaking its memory. It doesn't
@@ -28,8 +29,8 @@ func Register(r *mux.Router, db *sql.DB) {
 		//nolint:errcheck
 		defer tx.Commit()
 
-		u, err := Whoami(ctx, tx, r)
-		api.Respond(w, u, err)
+		u, err := Whoami(ctx, log, tx, r)
+		api.Respond(log, w, u, err)
 	})
 }
 
@@ -37,8 +38,8 @@ type User struct {
 	ID uuid.UUID `json:"id"`
 }
 
-func Whoami(ctx context.Context, tx db.Queryable, r *http.Request) (*User, error) {
-	u, err := user.FromRequest(ctx, tx, r)
+func Whoami(ctx context.Context, log *zap.Logger, tx db.Queryable, r *http.Request) (*User, error) {
+	u, err := user.FromRequest(ctx, log, tx, r)
 	if err != nil {
 		return nil, err
 	}

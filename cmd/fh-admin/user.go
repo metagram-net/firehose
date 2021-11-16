@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
@@ -42,8 +41,8 @@ func userRegisterCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			log.Printf("User ID: %s", r.userID)
-			log.Printf("API Key: %s", r.apiKey)
+			fmt.Printf("User ID: %s\n", r.userID)
+			fmt.Printf("API Key: %s\n", r.apiKey)
 			return nil
 		},
 	}

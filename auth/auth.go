@@ -23,11 +23,11 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 			api.Respond(log, w, nil, err)
 			return
 		}
-		// Commit the transaction to avoid leaking its memory. It doesn't
-		// really matter whether it closes, though, so we can ignore the error
-		// safely.
-		//nolint:errcheck
-		defer tx.Commit()
+		defer func() {
+			if err := tx.Commit(); err != nil {
+				log.Error("Could not commit transaction", zap.Error(err))
+			}
+		}()
 
 		u, err := Whoami(ctx, log, tx, r)
 		api.Respond(log, w, u, err)

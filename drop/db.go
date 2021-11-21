@@ -129,6 +129,26 @@ func (u UserScope) Update(ctx context.Context, tx db.Queryable, id uuid.UUID, fi
 	return &r, scan.RowStrict(&r, rows)
 }
 
+func (u UserScope) Delete(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Record, error) {
+	query, args, err := db.Pq.
+		Delete("drops").
+		Where(sq.Eq{
+			"id":      id,
+			"user_id": u.id,
+		}).
+		Suffix("returning *").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	var r Record
+	return &r, scan.RowStrict(&r, rows)
+}
+
 func (u UserScope) Find(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Record, error) {
 	query, args, err := u._select().ToSql()
 	if err != nil {

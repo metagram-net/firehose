@@ -18,6 +18,8 @@ import (
 )
 
 func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
+	// TODO: Require GET vs. POST in handlers.
+
 	r.HandleFunc("/random", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := api.Context()
 		defer cancel()
@@ -130,6 +132,38 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 		d, err := Update(ctx, tx, *u, id, req, time.Now())
 		api.Respond(log, w, d, err)
 	})
+
+	r.HandleFunc("/delete/{id}", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := api.Context()
+		defer cancel()
+
+		vars := mux.Vars(r)
+		id, err := uuid.FromString(vars["id"])
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+		defer func() {
+			if err := tx.Commit(); err != nil {
+				log.Error("Could not commit transaction", zap.Error(err))
+			}
+		}()
+
+		u, err := user.FromRequest(ctx, log, tx, r)
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+
+		d, err := Delete(ctx, tx, *u, id)
+		api.Respond(log, w, d, err)
+	})
 }
 
 // TODO: I sense a ({ctx, tx, clock}, user, request) pattern forming.
@@ -167,6 +201,14 @@ func Update(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID
 		f.MovedAt = &now
 	}
 	d, err := ForUser(user.ID).Update(ctx, tx, id, f)
+	if err != nil {
+		return Drop{}, err
+	}
+	return d.Model(), err
+}
+
+func Delete(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID) (Drop, error) {
+	d, err := ForUser(user.ID).Delete(ctx, tx, id)
 	if err != nil {
 		return Drop{}, err
 	}

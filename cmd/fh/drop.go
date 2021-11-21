@@ -23,6 +23,7 @@ func dropCmd() *cobra.Command {
 		dropRandomCmd(),
 		dropNewCmd(),
 		dropEditCmd(),
+		dropDeleteCmd(),
 	)
 	return cmd
 }
@@ -172,5 +173,48 @@ func dropEditCmd() *cobra.Command {
 	flags.StringVar(&request.Title, "title", "", "Set the title")
 	flags.StringVar(&request.URL, "url", "", "Set the URL")
 	flags.StringVar(&request.Status, "status", "", "Set the status")
+	return cmd
+}
+
+func dropDeleteCmd() *cobra.Command {
+	var id string
+
+	cmd := &cobra.Command{
+		Use:          "delete",
+		Short:        "Delete a drop",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+
+			url, err := urlJoin(viper.GetString("url-base"), "drops/delete", id)
+			if err != nil {
+				return err
+			}
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url.String(), nil)
+			if err != nil {
+				return err
+			}
+			req.SetBasicAuth(viper.GetString("user-id"), viper.GetString("api-key"))
+
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return err
+			}
+			defer res.Body.Close()
+
+			resBody, err := io.ReadAll(res.Body)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(resBody))
+			return nil
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&id, "id", "", "The drop ID")
+	cmd.MarkFlagRequired("id")
 	return cmd
 }

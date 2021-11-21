@@ -71,7 +71,7 @@ func Create(ctx context.Context, tx db.Queryable, name string, userID uuid.UUID)
 		SetMap(map[string]interface{}{
 			"user_id":       userID,
 			"name":          name,
-			"hashed_secret": plain.Hash(),
+			"hashed_secret": plain.byteaHex(),
 		}).
 		Suffix("returning *").
 		ToSql()
@@ -91,11 +91,14 @@ func Create(ctx context.Context, tx db.Queryable, name string, userID uuid.UUID)
 	return &plain, &r, nil
 }
 
-func Find(ctx context.Context, tx db.Queryable, plain Plaintext) (*Record, error) {
+func Find(ctx context.Context, tx db.Queryable, userID uuid.UUID, plain Plaintext) (*Record, error) {
 	query, args, err := db.Pq.
 		Select("*").
 		From("api_keys").
-		Where(sq.Eq{"hashed_secret": plain.byteaHex()}).
+		Where(sq.Eq{
+			"user_id":       userID,
+			"hashed_secret": plain.byteaHex(),
+		}).
 		ToSql()
 	if err != nil {
 		return nil, err

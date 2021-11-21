@@ -30,19 +30,19 @@ func main() {
 }
 
 func initViper() {
-	viper.SetConfigName("firehose-admin.toml")
+	viper.SetConfigName("firehose.toml")
 	viper.SetConfigType("toml")
 	viper.AddConfigPath(".")
 
-	viper.SetEnvPrefix("FIREHOSE_ADMIN")
+	viper.SetEnvPrefix("FIREHOSE")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 }
 
 func rootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "fh-admin",
-		Short:   "Administration commands for a Firehose server",
+		Use:     "fh",
+		Short:   "Interact with a Firehose server",
 		Version: "0.1.0",
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			err := viper.ReadInConfig()
@@ -58,7 +58,7 @@ func rootCmd() *cobra.Command {
 	viper.BindPFlags(flags)
 
 	cmd.AddCommand(
-		userCmd(),
+		dropCmd(),
 	)
 	return cmd
 }

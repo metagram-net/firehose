@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/blockloop/scan"
@@ -68,24 +67,31 @@ func Find(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Record, error) {
 }
 
 func FromRequest(ctx context.Context, log *zap.Logger, tx db.Queryable, req *http.Request) (*Record, error) {
-	// Based on net/http.Request.BasicAuth. Changed for Bearer auth
-	auth := req.Header.Get("Authorization")
-	if auth == "" {
-		return nil, ErrMissingAuthz
-	}
-	prefix := "Bearer "
-	if len(auth) < len(prefix) || !strings.EqualFold(auth[:len(prefix)], prefix) {
+	// If the header is missing completely, return a more helpful error.
+	if req.Header.Get("Authorization") == "" {
 		return nil, ErrMissingAuthz
 	}
 
-	token, err := apikey.NewPlaintext(auth[len(prefix):])
+	// Parse out the user ID and token
+	username, password, ok := req.BasicAuth()
+	if !ok {
+		log.Warn("Invalid basic auth header")
+		return nil, ErrInvalidAuthz
+	}
+	userID, err := uuid.FromString(username)
+	if err != nil {
+		log.Warn("Could not parse user ID", zap.Error(err))
+		return nil, ErrInvalidAuthz
+	}
+	token, err := apikey.NewPlaintext(password)
 	if err != nil {
 		log.Warn("Could not parse token", zap.Error(err))
 		return nil, ErrInvalidAuthz
 	}
-	key, err := apikey.Find(ctx, tx, token)
+
+	key, err := apikey.Find(ctx, tx, userID, token)
 	if err != nil {
-		log.Warn("Could not find API key by token", zap.Error(err))
+		log.Warn("Could not find API key by user ID and token", zap.Error(err))
 		return nil, ErrInvalidAuthz
 	}
 	u, err := Find(ctx, tx, key.UserID)

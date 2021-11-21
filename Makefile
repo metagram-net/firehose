@@ -52,6 +52,14 @@ test-hurl:
 		./tests/hurl/*
 
 .PHONY: licensed
-licensed:
+licensed: licensed-cache licensed-check
+
+.PHONY: licensed-check
+licensed-check:
 	go mod tidy
 	licensed status
+
+.PHONY:
+licensed-cache:
+	go mod tidy
+	licensed cache

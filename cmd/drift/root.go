@@ -32,6 +32,7 @@ func rootCmd() *cobra.Command {
 		migrateCmd(),
 		newCmd(),
 		setupCmd(),
+		renumberCmd(),
 	)
 	return cmd
 }

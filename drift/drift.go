@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"text/tabwriter"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -59,6 +60,10 @@ func (m *MigrationID) Set(s string) error {
 	id, err := NewMigrationID(i)
 	*m = id
 	return err
+}
+
+func (m MigrationID) Width() int {
+	return len(fmt.Sprintf("%d", m))
 }
 
 func mustID(s string) MigrationID {
@@ -135,7 +140,11 @@ type migrationFile struct {
 
 	ID   MigrationID
 	Slug string
+
+	idRaw string
 }
+
+// TODO: Use an afero.Fs to make this easier to test.
 
 func available(dir string) ([]migrationFile, error) {
 	files, err := os.ReadDir(dir)
@@ -164,6 +173,8 @@ func available(dir string) ([]migrationFile, error) {
 			// only fail if the ID doesn't fit into an int64.
 			ID:   mustID(m[reFilename.SubexpIndex("id")]),
 			Slug: m[reFilename.SubexpIndex("slug")],
+
+			idRaw: m[reFilename.SubexpIndex("id")],
 		})
 	}
 
@@ -273,7 +284,7 @@ func NewFile(migrationsDir string, id MigrationID, slug string, template string)
 	}
 
 	slug = slugify(slug)
-	name := fmt.Sprintf("%d-%s.sql", id, slug)
+	name := filename(idWidth(files), id, slug)
 	path := filepath.Join(migrationsDir, name)
 
 	//#nosec G306 // Normal permissions for non-sensitive files.
@@ -348,3 +359,57 @@ select _drift_claim_migration(0, 'init');
 
 commit;
 `
+
+func Renumber(ctx context.Context, dir string) error {
+	files, err := available(dir)
+	if err != nil {
+		return err
+	}
+	width := idWidth(files)
+
+	type rename struct {
+		from string
+		to   string
+	}
+	var renames []rename
+	for _, f := range files {
+		id := f.idRaw
+		if len(id) < width {
+			renames = append(renames, rename{
+				from: f.Name,
+				to:   filename(width, f.ID, f.Slug),
+			})
+		}
+	}
+
+	table := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+	log.Printf("Renames:")
+	for _, r := range renames {
+		fmt.Fprintf(table, "%s\t->\t%s\n", r.from, r.to)
+	}
+	table.Flush()
+
+	for _, r := range renames {
+		old := filepath.Join(dir, r.from)
+		new := filepath.Join(dir, r.to)
+		if err := os.Rename(old, new); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func idWidth(files []migrationFile) int {
+	width := 0
+	for _, f := range files {
+		w := f.ID.Width()
+		if w > width {
+			width = w
+		}
+	}
+	return width
+}
+
+func filename(idWidth int, id MigrationID, slug string) string {
+	return fmt.Sprintf("%0*d-%s.sql", idWidth, id, slug)
+}

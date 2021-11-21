@@ -26,7 +26,7 @@ type Drop struct {
 type Record struct {
 	ID      uuid.UUID      `db:"id"`
 	UserID  uuid.UUID      `db:"user_id"`
-	Title   sql.NullString `db:"title"`
+	Title   sql.NullString `db:"title"` // TODO: make non-nullable
 	URL     string         `db:"url"`
 	Status  Status         `db:"status"`
 	MovedAt sql.NullTime   `db:"moved_at"` // TODO: make non-nullable
@@ -44,12 +44,44 @@ func (r Record) Model() Drop {
 	}
 }
 
+type Fields struct {
+	Title   *string    `db:"title"`
+	URL     *string    `db:"url"`
+	Status  *Status    `db:"status"`
+	MovedAt *time.Time `db:"moved_at"` // TODO: make non-nullable
+}
+
+func (f Fields) row() db.Row {
+	r := make(db.Row)
+	// TODO: This seems like a good place to try reflection and struct tags.
+	if f.MovedAt != nil {
+		r["moved_at"] = *f.MovedAt
+	}
+	if f.Status != nil {
+		r["status"] = *f.Status
+	}
+	if f.Title != nil {
+		r["title"] = *f.Title
+	}
+	if f.URL != nil {
+		r["url"] = *f.URL
+	}
+	return r
+}
+
 type UserScope struct {
 	id uuid.UUID
 }
 
 func ForUser(id uuid.UUID) UserScope {
 	return UserScope{id: id}
+}
+
+func (u UserScope) _select() sq.SelectBuilder {
+	return db.Pq.
+		Select("*").
+		From("drops").
+		Where(sq.Eq{"drops.user_id": u.id})
 }
 
 func (u UserScope) Create(ctx context.Context, tx db.Queryable, title string, url url.URL, now time.Time) (*Record, error) {
@@ -76,11 +108,25 @@ func (u UserScope) Create(ctx context.Context, tx db.Queryable, title string, ur
 	return &r, scan.RowStrict(&r, rows)
 }
 
-func (u UserScope) _select() sq.SelectBuilder {
-	return db.Pq.
-		Select("*").
-		From("drops").
-		Where(sq.Eq{"drops.user_id": u.id})
+func (u UserScope) Update(ctx context.Context, tx db.Queryable, id uuid.UUID, fields Fields) (*Record, error) {
+	query, args, err := db.Pq.
+		Update("drops").
+		Where(sq.Eq{
+			"id":      id,
+			"user_id": u.id,
+		}).
+		SetMap(fields.row()).
+		Suffix("returning *").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	var r Record
+	return &r, scan.RowStrict(&r, rows)
 }
 
 func (u UserScope) Find(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Record, error) {

@@ -66,6 +66,8 @@ func Find(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Record, error) {
 	return &r, scan.RowStrict(&r, rows)
 }
 
+// TODO: Replace API key "passwords" key registration and request signing.
+
 func FromRequest(ctx context.Context, log *zap.Logger, tx db.Queryable, req *http.Request) (*Record, error) {
 	// If the header is missing completely, return a more helpful error.
 	if req.Header.Get("Authorization") == "" {

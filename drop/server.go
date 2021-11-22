@@ -164,6 +164,63 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 		d, err := Delete(ctx, tx, *u, id)
 		api.Respond(log, w, d, err)
 	})
+
+	r.HandleFunc("/get/{id}", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := api.Context()
+		defer cancel()
+
+		vars := mux.Vars(r)
+		id, err := uuid.FromString(vars["id"])
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+		defer func() {
+			if err := tx.Commit(); err != nil {
+				log.Error("Could not commit transaction", zap.Error(err))
+			}
+		}()
+
+		u, err := user.FromRequest(ctx, log, tx, r)
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+
+		d, err := Get(ctx, tx, *u, id)
+		api.Respond(log, w, d, err)
+	})
+
+	r.HandleFunc("/next", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := api.Context()
+		defer cancel()
+
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+		defer func() {
+			if err := tx.Commit(); err != nil {
+				log.Error("Could not commit transaction", zap.Error(err))
+			}
+		}()
+
+		u, err := user.FromRequest(ctx, log, tx, r)
+		if err != nil {
+			api.Respond(log, w, nil, err)
+			return
+		}
+
+		d, err := Next(ctx, tx, *u)
+		api.Respond(log, w, d, err)
+	})
 }
 
 // TODO: I sense a ({ctx, tx, clock}, user, request) pattern forming.
@@ -209,6 +266,22 @@ func Update(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID
 
 func Delete(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID) (Drop, error) {
 	d, err := ForUser(user.ID).Delete(ctx, tx, id)
+	if err != nil {
+		return Drop{}, err
+	}
+	return d.Model(), err
+}
+
+func Get(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID) (Drop, error) {
+	d, err := ForUser(user.ID).Find(ctx, tx, id)
+	if err != nil {
+		return Drop{}, err
+	}
+	return d.Model(), err
+}
+
+func Next(ctx context.Context, tx db.Queryable, user user.Record) (Drop, error) {
+	d, err := ForUser(user.ID).Next(ctx, tx)
 	if err != nil {
 		return Drop{}, err
 	}

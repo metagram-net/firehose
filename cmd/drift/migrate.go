@@ -11,6 +11,7 @@ import (
 )
 
 func migrateCmd() *cobra.Command {
+	// TODO: Add a `--to id` flag to limit the migrations that apply.
 	cmd := &cobra.Command{
 		Use:          "migrate",
 		Short:        "Run migrations",

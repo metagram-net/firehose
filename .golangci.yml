@@ -49,3 +49,9 @@ linters-settings:
     exclude-functions:
       - (*github.com/spf13/cobra.Command).MarkFlagRequired
       - github.com/spf13/viper.BindPFlags
+severity:
+  default-severity: 'error'
+  rules:
+    - severity: info
+      linters:
+        - dupl

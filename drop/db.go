@@ -20,7 +20,7 @@ type Drop struct {
 	Title   string     `json:"title"`
 	URL     string     `json:"url"`
 	Status  Status     `json:"status"`
-	MovedAt *time.Time `json:"movedAt"` // TODO: make non-nullable
+	MovedAt *time.Time `json:"moved_at"` // TODO: make non-nullable
 }
 
 type Record struct {
@@ -164,8 +164,26 @@ func (u UserScope) Find(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Re
 
 func (u UserScope) Random(ctx context.Context, tx db.Queryable) (*Record, error) {
 	query, args, err := u._select().
-		Limit(1).
+		Where(sq.Eq{"status": StatusUnread}).
 		OrderBy("random()").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	var r Record
+	return &r, scan.RowStrict(&r, rows)
+}
+
+func (u UserScope) Next(ctx context.Context, tx db.Queryable) (*Record, error) {
+	query, args, err := u._select().
+		Where(sq.Eq{"status": StatusUnread}).
+		OrderBy("moved_at asc").
+		Limit(1).
 		ToSql()
 	if err != nil {
 		return nil, err

@@ -21,8 +21,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	// TODO: Require GET vs. POST in handlers.
 
 	r.HandleFunc("/random", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := api.Context()
-		defer cancel()
+		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
@@ -46,8 +45,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	})
 
 	r.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := api.Context()
-		defer cancel()
+		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
@@ -91,8 +89,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	})
 
 	r.HandleFunc("/update/{id}", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := api.Context()
-		defer cancel()
+		ctx := r.Context()
 
 		vars := mux.Vars(r)
 		id, err := uuid.FromString(vars["id"])
@@ -134,8 +131,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	})
 
 	r.HandleFunc("/delete/{id}", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := api.Context()
-		defer cancel()
+		ctx := r.Context()
 
 		vars := mux.Vars(r)
 		id, err := uuid.FromString(vars["id"])
@@ -166,8 +162,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	})
 
 	r.HandleFunc("/get/{id}", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := api.Context()
-		defer cancel()
+		ctx := r.Context()
 
 		vars := mux.Vars(r)
 		id, err := uuid.FromString(vars["id"])
@@ -198,8 +193,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	})
 
 	r.HandleFunc("/next", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := api.Context()
-		defer cancel()
+		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {

@@ -15,8 +15,7 @@ import (
 
 func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 	r.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := api.Context()
-		defer cancel()
+		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {

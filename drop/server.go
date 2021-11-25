@@ -18,9 +18,7 @@ import (
 )
 
 func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
-	// TODO: Require GET vs. POST in handlers.
-
-	r.HandleFunc("/random", func(w http.ResponseWriter, r *http.Request) {
+	r.Methods(http.MethodGet).Path("/random").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)
@@ -44,7 +42,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 		api.Respond(log, w, d, err)
 	})
 
-	r.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
+	r.Methods(http.MethodPost).Path("/create").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)
@@ -88,7 +86,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 		api.Respond(log, w, d, err)
 	})
 
-	r.HandleFunc("/update/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.Methods(http.MethodPost).Path("/update/{id}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		vars := mux.Vars(r)
@@ -130,7 +128,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 		api.Respond(log, w, d, err)
 	})
 
-	r.HandleFunc("/delete/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.Methods(http.MethodPost).Path("/delete/{id}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		vars := mux.Vars(r)
@@ -161,7 +159,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 		api.Respond(log, w, d, err)
 	})
 
-	r.HandleFunc("/get/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.Methods(http.MethodGet).Path("/get/{id}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		vars := mux.Vars(r)
@@ -192,7 +190,7 @@ func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
 		api.Respond(log, w, d, err)
 	})
 
-	r.HandleFunc("/next", func(w http.ResponseWriter, r *http.Request) {
+	r.Methods(http.MethodGet).Path("/next").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)

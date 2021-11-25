@@ -54,5 +54,8 @@ func server(log *zap.Logger, db *sql.DB) *mux.Router {
 	auth.Register(r.PathPrefix("/auth/").Subrouter(), db, log)
 	drop.Register(r.PathPrefix("/v1/drops/").Subrouter(), db, log)
 
+	// TODO: mux.Router.NotFoundHandler
+	// TODO: mux.Router.MethodNotAllowedHandler
+
 	return r
 }

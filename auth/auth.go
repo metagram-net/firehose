@@ -14,7 +14,7 @@ import (
 )
 
 func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
-	r.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
+	r.Methods(http.MethodGet).Path("/whoami").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		tx, err := db.BeginTx(ctx, nil)

@@ -36,6 +36,8 @@ func NewClient(urlBase, userID, apiKey string) (*Client, error) {
 	}, nil
 }
 
+// TODO: Turn error statuses into error values
+
 func (c Client) Get(ctx context.Context, path string) (*http.Response, error) {
 	url, err := c.urlBase.Parse(path)
 	if err != nil {

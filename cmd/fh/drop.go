@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
-	"strings"
+	"os"
 
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
+	"github.com/metagram-net/firehose/rest"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,12 +29,6 @@ func dropCmd() *cobra.Command {
 	return cmd
 }
 
-func urlJoin(parts ...string) (*url.URL, error) {
-	return url.Parse(strings.Join(parts, "/"))
-}
-
-// TODO: There's a _lot_ of deduplication to be done in here.
-
 func dropRandomCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "random",
@@ -45,30 +38,23 @@ func dropRandomCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			url, err := urlJoin(viper.GetString("url-base"), "drops/random")
+			c, err := rest.NewClient(
+				viper.GetString("url-base"),
+				viper.GetString("user-id"),
+				viper.GetString("api-key"),
+			)
 			if err != nil {
 				return err
 			}
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
-			if err != nil {
-				return err
-			}
-			req.SetBasicAuth(viper.GetString("user-id"), viper.GetString("api-key"))
-
-			res, err := http.DefaultClient.Do(req)
+			res, err := c.Get(ctx, "drops/random")
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
 
-			body, err := io.ReadAll(res.Body)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(body))
-			return nil
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
 		},
 	}
 	return cmd
@@ -88,7 +74,11 @@ func dropNewCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			url, err := urlJoin(viper.GetString("url-base"), "drops/create")
+			c, err := rest.NewClient(
+				viper.GetString("url-base"),
+				viper.GetString("user-id"),
+				viper.GetString("api-key"),
+			)
 			if err != nil {
 				return err
 			}
@@ -97,25 +87,15 @@ func dropNewCmd() *cobra.Command {
 			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
 				return err
 			}
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url.String(), &reqBody)
-			if err != nil {
-				return err
-			}
-			req.SetBasicAuth(viper.GetString("user-id"), viper.GetString("api-key"))
 
-			res, err := http.DefaultClient.Do(req)
+			res, err := c.Post(ctx, "drops/create", &reqBody)
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
 
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(resBody))
-			return nil
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
 		},
 	}
 	flags := cmd.Flags()
@@ -141,7 +121,11 @@ func dropEditCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			url, err := urlJoin(viper.GetString("url-base"), "drops/update", id)
+			c, err := rest.NewClient(
+				viper.GetString("url-base"),
+				viper.GetString("user-id"),
+				viper.GetString("api-key"),
+			)
 			if err != nil {
 				return err
 			}
@@ -150,25 +134,15 @@ func dropEditCmd() *cobra.Command {
 			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
 				return err
 			}
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url.String(), &reqBody)
-			if err != nil {
-				return err
-			}
-			req.SetBasicAuth(viper.GetString("user-id"), viper.GetString("api-key"))
 
-			res, err := http.DefaultClient.Do(req)
+			res, err := c.Post(ctx, "drops/update", &reqBody)
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
 
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(resBody))
-			return nil
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
 		},
 	}
 	flags := cmd.Flags()
@@ -191,30 +165,23 @@ func dropDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			url, err := urlJoin(viper.GetString("url-base"), "drops/delete", id)
+			c, err := rest.NewClient(
+				viper.GetString("url-base"),
+				viper.GetString("user-id"),
+				viper.GetString("api-key"),
+			)
 			if err != nil {
 				return err
 			}
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url.String(), nil)
-			if err != nil {
-				return err
-			}
-			req.SetBasicAuth(viper.GetString("user-id"), viper.GetString("api-key"))
-
-			res, err := http.DefaultClient.Do(req)
+			res, err := c.Post(ctx, fmt.Sprintf("drops/delete/%s", id), nil)
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
 
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(resBody))
-			return nil
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
 		},
 	}
 	flags := cmd.Flags()
@@ -234,30 +201,23 @@ func dropGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			url, err := urlJoin(viper.GetString("url-base"), "drops/get", id)
+			c, err := rest.NewClient(
+				viper.GetString("url-base"),
+				viper.GetString("user-id"),
+				viper.GetString("api-key"),
+			)
 			if err != nil {
 				return err
 			}
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
-			if err != nil {
-				return err
-			}
-			req.SetBasicAuth(viper.GetString("user-id"), viper.GetString("api-key"))
-
-			res, err := http.DefaultClient.Do(req)
+			res, err := c.Get(ctx, fmt.Sprintf("drops/get/%s", id))
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
 
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(resBody))
-			return nil
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
 		},
 	}
 	flags := cmd.Flags()
@@ -275,30 +235,23 @@ func dropNextCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			url, err := urlJoin(viper.GetString("url-base"), "drops/next")
+			c, err := rest.NewClient(
+				viper.GetString("url-base"),
+				viper.GetString("user-id"),
+				viper.GetString("api-key"),
+			)
 			if err != nil {
 				return err
 			}
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
-			if err != nil {
-				return err
-			}
-			req.SetBasicAuth(viper.GetString("user-id"), viper.GetString("api-key"))
-
-			res, err := http.DefaultClient.Do(req)
+			res, err := c.Get(ctx, "drops/next")
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
 
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(resBody))
-			return nil
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
 		},
 	}
 	return cmd

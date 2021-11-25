@@ -1,7 +1,6 @@
 package drop
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"io"
@@ -13,49 +12,79 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth/user"
-	"github.com/metagram-net/firehose/db"
+	"github.com/metagram-net/firehose/clock"
 	"go.uber.org/zap"
 )
 
-type server struct {
+type Server struct {
 	log *zap.Logger
 	db  *sql.DB
 }
 
-func (s *server) Random(hctx api.HandlerContext, w http.ResponseWriter, r *http.Request) {
-	ctx, log, tx := hctx.Ctx, hctx.Log, hctx.Tx
+func NewServer(log *zap.Logger, db *sql.DB) *Server {
+	return &Server{log, db}
+}
 
-	u, err := user.FromRequest(ctx, log, tx, r)
+func (s *Server) Random(w http.ResponseWriter, r *http.Request) { s.authed(w, r, s.random) }
+func (s *Server) Next(w http.ResponseWriter, r *http.Request)   { s.authed(w, r, s.next) }
+func (s *Server) Get(w http.ResponseWriter, r *http.Request)    { s.authed(w, r, s.get) }
+func (s *Server) Create(w http.ResponseWriter, r *http.Request) { s.authed(w, r, s.create) }
+func (s *Server) Update(w http.ResponseWriter, r *http.Request) { s.authed(w, r, s.update) }
+func (s *Server) Delete(w http.ResponseWriter, r *http.Request) { s.authed(w, r, s.delete) }
+
+type authedHandler func(api.Context, user.Record, http.ResponseWriter, *http.Request)
+
+func (s *Server) authed(w http.ResponseWriter, r *http.Request, next authedHandler) {
+	ctx := r.Context()
+
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		api.Respond(log, w, nil, err)
+		api.Respond(s.log, w, nil, err)
+		return
+	}
+	defer func() {
+		if err := tx.Commit(); err != nil {
+			s.log.Error("Could not commit transaction", zap.Error(err))
+		}
+	}()
+
+	u, err := user.FromRequest(ctx, s.log, tx, r)
+	if err != nil {
+		api.Respond(s.log, w, nil, err)
 		return
 	}
 
-	d, err := Random(ctx, tx, *u)
+	a := api.Context{
+		Ctx:   ctx,
+		Log:   s.log,
+		Tx:    tx,
+		Clock: clock.Freeze(time.Now()),
+	}
+	next(a, *u, w, r)
+}
+
+func unmarshal(r *http.Request, v interface{}) error {
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, v)
+}
+
+func (s *Server) random(a api.Context, u user.Record, w http.ResponseWriter, _ *http.Request) {
+	ctx, log, tx := a.Ctx, a.Log, a.Tx
+	d, err := Random(ctx, tx, u)
 	api.Respond(log, w, d, err)
 }
 
-func (s *server) Next(hctx api.HandlerContext, w http.ResponseWriter, r *http.Request) {
-	ctx, log, tx := hctx.Ctx, hctx.Log, hctx.Tx
-
-	u, err := user.FromRequest(ctx, log, tx, r)
-	if err != nil {
-		api.Respond(log, w, nil, err)
-		return
-	}
-
-	d, err := Next(ctx, tx, *u)
+func (s *Server) next(a api.Context, u user.Record, w http.ResponseWriter, _ *http.Request) {
+	ctx, log, tx := a.Ctx, a.Log, a.Tx
+	d, err := Next(ctx, tx, u)
 	api.Respond(log, w, d, err)
 }
 
-func (s *server) Get(hctx api.HandlerContext, w http.ResponseWriter, r *http.Request) {
-	ctx, log, tx := hctx.Ctx, hctx.Log, hctx.Tx
-
-	u, err := user.FromRequest(ctx, log, tx, r)
-	if err != nil {
-		api.Respond(log, w, nil, err)
-		return
-	}
+func (s *Server) get(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	vars := mux.Vars(r)
 	id, err := uuid.FromString(vars["id"])
@@ -64,29 +93,18 @@ func (s *server) Get(hctx api.HandlerContext, w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	d, err := Get(ctx, tx, *u, id)
+	d, err := Get(ctx, tx, u, id)
 	api.Respond(log, w, d, err)
 }
 
-func (s *server) Create(hctx api.HandlerContext, w http.ResponseWriter, r *http.Request) {
-	ctx, log, tx, clock := hctx.Ctx, hctx.Log, hctx.Tx, hctx.Clock
-
-	u, err := user.FromRequest(ctx, log, tx, r)
-	if err != nil {
-		api.Respond(log, w, nil, err)
-		return
-	}
+func (s *Server) create(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
 
 	var req struct {
 		Title string `json:"title"`
 		URL   string `json:"url"`
 	}
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		api.Respond(log, w, nil, err)
-		return
-	}
-	if err := json.Unmarshal(b, &req); err != nil {
+	if err := unmarshal(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
@@ -97,18 +115,12 @@ func (s *server) Create(hctx api.HandlerContext, w http.ResponseWriter, r *http.
 		return
 	}
 
-	d, err := Create(ctx, tx, *u, req.Title, *urlp, clock.Now())
+	d, err := Create(ctx, tx, u, req.Title, *urlp, clock.Now())
 	api.Respond(log, w, d, err)
 }
 
-func (s *server) Update(hctx api.HandlerContext, w http.ResponseWriter, r *http.Request) {
-	ctx, log, tx, clock := hctx.Ctx, hctx.Log, hctx.Tx, hctx.Clock
-
-	u, err := user.FromRequest(ctx, log, tx, r)
-	if err != nil {
-		api.Respond(log, w, nil, err)
-		return
-	}
+func (s *Server) update(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
 
 	vars := mux.Vars(r)
 	id, err := uuid.FromString(vars["id"])
@@ -118,28 +130,17 @@ func (s *server) Update(hctx api.HandlerContext, w http.ResponseWriter, r *http.
 	}
 
 	var req UpdateRequest
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		api.Respond(log, w, nil, err)
-		return
-	}
-	if err := json.Unmarshal(b, &req); err != nil {
+	if err := unmarshal(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
 
-	d, err := Update(ctx, tx, *u, id, req, clock.Now())
+	d, err := Update(ctx, tx, u, id, req, clock.Now())
 	api.Respond(log, w, d, err)
 }
 
-func (s *server) Delete(hctx api.HandlerContext, w http.ResponseWriter, r *http.Request) {
-	ctx, log, tx := hctx.Ctx, hctx.Log, hctx.Tx
-
-	u, err := user.FromRequest(ctx, log, tx, r)
-	if err != nil {
-		api.Respond(log, w, nil, err)
-		return
-	}
+func (s *Server) delete(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	vars := mux.Vars(r)
 	id, err := uuid.FromString(vars["id"])
@@ -148,82 +149,6 @@ func (s *server) Delete(hctx api.HandlerContext, w http.ResponseWriter, r *http.
 		return
 	}
 
-	d, err := Delete(ctx, tx, *u, id)
+	d, err := Delete(ctx, tx, u, id)
 	api.Respond(log, w, d, err)
-}
-
-func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
-	// TODO: If s already knows the log and db, why use api.Handle?
-	s := server{log, db}
-
-	r.Methods(http.MethodGet).Path("/random").Handler(api.Handle(db, log, s.Random))
-	r.Methods(http.MethodGet).Path("/next").Handler(api.Handle(db, log, s.Next))
-	r.Methods(http.MethodGet).Path("/get/{id}").Handler(api.Handle(db, log, s.Get))
-
-	r.Methods(http.MethodPost).Path("/create").Handler(api.Handle(db, log, s.Create))
-	r.Methods(http.MethodPost).Path("/update/{id}").Handler(api.Handle(db, log, s.Update))
-	r.Methods(http.MethodPost).Path("/delete/{id}").Handler(api.Handle(db, log, s.Delete))
-}
-
-func Random(ctx context.Context, tx db.Queryable, user user.Record) (Drop, error) {
-	d, err := ForUser(user.ID).Random(ctx, tx)
-	if err != nil {
-		return Drop{}, err
-	}
-	return d.Model(), err
-}
-
-func Create(ctx context.Context, tx db.Queryable, user user.Record, title string, url url.URL, now time.Time) (Drop, error) {
-	d, err := ForUser(user.ID).Create(ctx, tx, title, url, now)
-	if err != nil {
-		return Drop{}, err
-	}
-	return d.Model(), err
-}
-
-type UpdateRequest struct {
-	Title  *string `json:"title"`
-	URL    *string `json:"url"`
-	Status *Status `json:"status"`
-}
-
-func Update(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID, req UpdateRequest, now time.Time) (Drop, error) {
-	f := Fields{
-		Title:  req.Title,
-		URL:    req.URL,
-		Status: req.Status,
-	}
-	// Mark when the status changed so streams act more like FIFO queues.
-	if f.Status != nil {
-		f.MovedAt = &now
-	}
-	d, err := ForUser(user.ID).Update(ctx, tx, id, f)
-	if err != nil {
-		return Drop{}, err
-	}
-	return d.Model(), err
-}
-
-func Delete(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID) (Drop, error) {
-	d, err := ForUser(user.ID).Delete(ctx, tx, id)
-	if err != nil {
-		return Drop{}, err
-	}
-	return d.Model(), err
-}
-
-func Get(ctx context.Context, tx db.Queryable, user user.Record, id uuid.UUID) (Drop, error) {
-	d, err := ForUser(user.ID).Find(ctx, tx, id)
-	if err != nil {
-		return Drop{}, err
-	}
-	return d.Model(), err
-}
-
-func Next(ctx context.Context, tx db.Queryable, user user.Record) (Drop, error) {
-	d, err := ForUser(user.ID).Next(ctx, tx)
-	if err != nil {
-		return Drop{}, err
-	}
-	return d.Model(), err
 }

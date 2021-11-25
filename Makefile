@@ -48,7 +48,7 @@ test-hurl:
 		--summary \
 		--output /dev/null \
 		--variable root_url="$${TEST_API_ROOT}" \
-		--variable api_key="$${TEST_API_KEY}" \
+		--variable basic_auth="$$(echo -n "$${TEST_API_USER}:$${TEST_API_KEY}" | base64 --wrap=0)" \
 		./tests/hurl/*
 
 .PHONY: licensed

@@ -50,9 +50,18 @@ func server(log *zap.Logger, db *sql.DB) *mux.Router {
 
 	r.Use(api.NewLogMiddleware(log))
 
-	wellknown.Register(r.PathPrefix("/.well-known/").Subrouter())
-	auth.Register(r.PathPrefix("/auth/").Subrouter(), db, log)
-	drop.Register(r.PathPrefix("/v1/drops/").Subrouter(), db, log)
+	r.Methods(http.MethodGet).Path("/.well-known/health-check").HandlerFunc(wellknown.HealthCheck)
+
+	authSrv := auth.NewServer(log, db)
+	r.Methods(http.MethodGet).Path("/auth/whoami").HandlerFunc(authSrv.Whoami)
+
+	dropSrv := drop.NewServer(log, db)
+	r.Methods(http.MethodGet).Path("/v1/drops/random").HandlerFunc(dropSrv.Random)
+	r.Methods(http.MethodGet).Path("/v1/drops/next").HandlerFunc(dropSrv.Next)
+	r.Methods(http.MethodGet).Path("/v1/drops/get/{id}").HandlerFunc(dropSrv.Get)
+	r.Methods(http.MethodPost).Path("/v1/drops/create").HandlerFunc(dropSrv.Create)
+	r.Methods(http.MethodPost).Path("/v1/drops/update/{id}").HandlerFunc(dropSrv.Update)
+	r.Methods(http.MethodPost).Path("/v1/drops/delete/{id}").HandlerFunc(dropSrv.Delete)
 
 	// TODO: mux.Router.NotFoundHandler
 	// TODO: mux.Router.MethodNotAllowedHandler

@@ -2,36 +2,13 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 
 	"github.com/gofrs/uuid"
-	"github.com/gorilla/mux"
-	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/db"
 	"go.uber.org/zap"
 )
-
-func Register(r *mux.Router, db *sql.DB, log *zap.Logger) {
-	r.Methods(http.MethodGet).Path("/whoami").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		tx, err := db.BeginTx(ctx, nil)
-		if err != nil {
-			api.Respond(log, w, nil, err)
-			return
-		}
-		defer func() {
-			if err := tx.Commit(); err != nil {
-				log.Error("Could not commit transaction", zap.Error(err))
-			}
-		}()
-
-		u, err := Whoami(ctx, log, tx, r)
-		api.Respond(log, w, u, err)
-	})
-}
 
 type User struct {
 	ID uuid.UUID `json:"id"`

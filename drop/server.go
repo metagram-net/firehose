@@ -11,7 +11,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/metagram-net/firehose/api"
-	"github.com/metagram-net/firehose/auth/user"
+	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/clock"
 	"go.uber.org/zap"
 )
@@ -32,7 +32,7 @@ func (s *Server) Create(w http.ResponseWriter, r *http.Request) { s.authed(w, r,
 func (s *Server) Update(w http.ResponseWriter, r *http.Request) { s.authed(w, r, s.update) }
 func (s *Server) Delete(w http.ResponseWriter, r *http.Request) { s.authed(w, r, s.delete) }
 
-type authedHandler func(api.Context, user.Record, http.ResponseWriter, *http.Request)
+type authedHandler func(api.Context, auth.User, http.ResponseWriter, *http.Request)
 
 func (s *Server) authed(w http.ResponseWriter, r *http.Request, next authedHandler) {
 	ctx := r.Context()
@@ -48,7 +48,7 @@ func (s *Server) authed(w http.ResponseWriter, r *http.Request, next authedHandl
 		}
 	}()
 
-	u, err := user.FromRequest(ctx, s.log, tx, r)
+	u, err := auth.FromRequest(ctx, s.log, tx, r)
 	if err != nil {
 		api.Respond(s.log, w, nil, err)
 		return
@@ -71,19 +71,19 @@ func unmarshal(r *http.Request, v interface{}) error {
 	return json.Unmarshal(b, v)
 }
 
-func (s *Server) random(a api.Context, u user.Record, w http.ResponseWriter, _ *http.Request) {
+func (s *Server) random(a api.Context, u auth.User, w http.ResponseWriter, _ *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 	d, err := Random(ctx, tx, u)
 	api.Respond(log, w, d, err)
 }
 
-func (s *Server) next(a api.Context, u user.Record, w http.ResponseWriter, _ *http.Request) {
+func (s *Server) next(a api.Context, u auth.User, w http.ResponseWriter, _ *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 	d, err := Next(ctx, tx, u)
 	api.Respond(log, w, d, err)
 }
 
-func (s *Server) get(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+func (s *Server) get(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	vars := mux.Vars(r)
@@ -97,7 +97,7 @@ func (s *Server) get(a api.Context, u user.Record, w http.ResponseWriter, r *htt
 	api.Respond(log, w, d, err)
 }
 
-func (s *Server) create(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+func (s *Server) create(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
 
 	var req struct {
@@ -119,7 +119,7 @@ func (s *Server) create(a api.Context, u user.Record, w http.ResponseWriter, r *
 	api.Respond(log, w, d, err)
 }
 
-func (s *Server) update(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+func (s *Server) update(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
 
 	vars := mux.Vars(r)
@@ -139,7 +139,7 @@ func (s *Server) update(a api.Context, u user.Record, w http.ResponseWriter, r *
 	api.Respond(log, w, d, err)
 }
 
-func (s *Server) delete(a api.Context, u user.Record, w http.ResponseWriter, r *http.Request) {
+func (s *Server) delete(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	vars := mux.Vars(r)

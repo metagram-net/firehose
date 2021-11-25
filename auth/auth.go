@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gofrs/uuid"
-	"github.com/metagram-net/firehose/api"
+	"github.com/metagram-net/firehose/apierror"
 	"github.com/metagram-net/firehose/auth/apikey"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/db"
@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	ErrMissingAuthz = api.NewError(
+	ErrMissingAuthz = apierror.New(
 		http.StatusUnauthorized,
 		"missing_authorization",
 		"The Authorization header was missing or the wrong format.",
 	)
-	ErrInvalidAuthz = api.NewError(
+	ErrInvalidAuthz = apierror.New(
 		http.StatusUnauthorized,
 		"invalid_authorization",
 		"The provided credentials were not valid.",

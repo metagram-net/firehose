@@ -1,46 +1,44 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
+	"github.com/gorilla/mux"
+	"github.com/metagram-net/firehose/apierror"
+	"github.com/metagram-net/firehose/clock"
+	"github.com/metagram-net/firehose/db"
 	"go.uber.org/zap"
 )
 
-type httpStatus = int
-type ErrorCode string
-
-type Error struct {
-	Status  httpStatus
-	Code    ErrorCode
-	Message string
+type Context struct {
+	Ctx   context.Context
+	Log   *zap.Logger
+	Tx    db.Queryable
+	Clock clock.Clock
 }
 
-func (e Error) Error() string {
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+func NewLogger() (*zap.Logger, error) {
+	// TODO(prod): if production, zap.NewProduction()
+	return zap.NewDevelopment()
 }
 
-func NewError(status httpStatus, code ErrorCode, message string) Error {
-	return Error{
-		Status:  status,
-		Code:    code,
-		Message: message,
+func NewLogMiddleware(log *zap.Logger) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Info("Incoming request", zap.String("method", r.Method), zap.String("uri", r.RequestURI))
+			next.ServeHTTP(w, r)
+		})
 	}
 }
 
-var ErrUnhandled = Error{
-	Status:  http.StatusInternalServerError,
-	Code:    "internal_server_error",
-	Message: "Oops, sorry! There's an unhandled error in here somewhere.",
-}
-
 func WriteError(log *zap.Logger, w http.ResponseWriter, err error) error {
-	var e Error
+	var e apierror.Error
 	if !errors.As(err, &e) {
 		log.Warn("Unhandled error", zap.Error(err))
-		e = ErrUnhandled
+		e = apierror.ErrUnhandled
 	}
 
 	w.WriteHeader(e.Status)

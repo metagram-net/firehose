@@ -135,7 +135,7 @@ func dropEditCmd() *cobra.Command {
 				return err
 			}
 
-			res, err := c.Post(ctx, "drops/update", &reqBody)
+			res, err := c.Post(ctx, fmt.Sprintf("drops/update/%s", id), &reqBody)
 			if err != nil {
 				return err
 			}

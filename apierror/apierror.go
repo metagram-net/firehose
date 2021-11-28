@@ -2,8 +2,9 @@ package apierror
 
 import (
 	"fmt"
-	"net/http"
 )
+
+// TODO: Move these types to api (remove circular dependency with auth first)
 
 type httpStatus = int
 type ErrorCode string
@@ -24,10 +25,4 @@ func New(status httpStatus, code ErrorCode, message string) Error {
 		Code:    code,
 		Message: message,
 	}
-}
-
-var ErrUnhandled = Error{
-	Status:  http.StatusInternalServerError,
-	Code:    "internal_server_error",
-	Message: "Oops, sorry! There's an unhandled error in here somewhere.",
 }

@@ -29,14 +29,6 @@ type User struct {
 	ID uuid.UUID `json:"id"`
 }
 
-func Whoami(ctx context.Context, log *zap.Logger, tx db.Queryable, r *http.Request) (*User, error) {
-	u, err := FromRequest(ctx, log, tx, r)
-	if err != nil {
-		return nil, err
-	}
-	return &User{ID: u.ID}, nil
-}
-
 // TODO: Replace API key "passwords" with PK registration and request signing.
 
 func FromRequest(ctx context.Context, log *zap.Logger, tx db.Queryable, req *http.Request) (*User, error) {

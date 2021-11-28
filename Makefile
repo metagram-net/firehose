@@ -15,7 +15,7 @@ gen: ## Write generated code to files
 
 .PHONY: run
 run: ## Run the server
-	go run .
+	go run ./cmd/firehose
 
 .PHONY: watch
 watch: ## Re-run the server on code changes

@@ -32,7 +32,7 @@ func Server(log *zap.Logger, db *sql.DB) *mux.Router {
 	r.Methods(http.MethodPost).Path("/v1/drops/delete/{id}").HandlerFunc(srv.Authed(dropSrv.Delete))
 
 	r.NotFoundHandler = notFound(log)
-	// TODO: mux.Router.MethodNotAllowedHandler
+	r.MethodNotAllowedHandler = methodNotAllowed(log)
 
 	return r
 }
@@ -44,5 +44,11 @@ func whoami(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) 
 func notFound(log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		api.Respond(log, w, nil, api.ErrNotFound)
+	}
+}
+
+func methodNotAllowed(log *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		api.Respond(log, w, nil, api.ErrMethodNotAllowed)
 	}
 }

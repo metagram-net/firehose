@@ -27,6 +27,12 @@ var (
 		Code:    "not_found",
 		Message: "The requested route or resource does not exist.",
 	}
+	ErrMethodNotAllowed = apierror.Error{
+		Status: http.StatusMethodNotAllowed,
+		Code:   "method_not_allowed",
+		// TODO: Include the requested method and allowed methods in this message. (gorilla/mux #652)
+		Message: "The requested HTTP method cannot be handled by this route.",
+	}
 )
 
 type Context struct {

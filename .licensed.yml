@@ -1,8 +1,15 @@
-name: Firehose
-
 sources:
   go: true
 
+apps:
+  - source_path: cmd/drift
+  - source_path: cmd/fh
+  - source_path: cmd/fh-admin
+  - source_path: cmd/firehose
+
 allowed:
+  - apache-2.0
+  - bsd-2-clause
   - bsd-3-clause
   - mit
+  - mpl-2.0

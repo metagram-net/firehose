@@ -23,6 +23,7 @@ func dropCmd() *cobra.Command {
 		dropNewCmd(),
 		dropGetCmd(),
 		dropNextCmd(),
+		dropListCmd(),
 		dropEditCmd(),
 		dropDeleteCmd(),
 	)
@@ -254,5 +255,50 @@ func dropNextCmd() *cobra.Command {
 			return err
 		},
 	}
+	return cmd
+}
+
+func dropListCmd() *cobra.Command {
+	var request struct {
+		// TODO: Status enum as a CLI arg?
+		Status string `json:"status"`
+		Limit  int    `json:"limit"`
+	}
+
+	cmd := &cobra.Command{
+		Use:          "list",
+		Short:        "List drops",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+
+			c, err := rest.NewClient(
+				viper.GetString("url-base"),
+				viper.GetString("user-id"),
+				viper.GetString("api-key"),
+			)
+			if err != nil {
+				return err
+			}
+
+			var reqBody bytes.Buffer
+			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
+				return err
+			}
+
+			res, err := c.Post(ctx, "drops/list", &reqBody)
+			if err != nil {
+				return err
+			}
+			defer res.Body.Close()
+
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&request.Status, "status", "unread", "The drop status")
+	flags.IntVar(&request.Limit, "limit", 5, "The number of drops to list")
 	return cmd
 }

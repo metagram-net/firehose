@@ -5,6 +5,7 @@ package drop
 type Status int
 
 const (
+	// TODO: Start enum at 1
 	StatusUnread Status = iota // unread
 	StatusRead                 // read
 	StatusSaved                // saved

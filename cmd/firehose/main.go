@@ -58,7 +58,7 @@ func Main() error {
 	}
 
 	log.Info("Starting database connection pool")
-	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("pgx", viper.GetString("database-url"))
 	if err != nil {
 		return err
 	}

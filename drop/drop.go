@@ -72,3 +72,16 @@ func Next(ctx context.Context, tx db.Queryable, user auth.User) (Drop, error) {
 	}
 	return d.Model(), err
 }
+
+func List(ctx context.Context, tx db.Queryable, user auth.User, s Status, limit uint64) ([]Drop, error) {
+	ds, err := ForUser(user.ID).List(ctx, tx, s, limit)
+	if err != nil {
+		return nil, err
+	}
+	// The list of drops should never be nil/null, so always make the slice.
+	res := make([]Drop, 0)
+	for _, d := range ds {
+		res = append(res, d.Model())
+	}
+	return res, err
+}

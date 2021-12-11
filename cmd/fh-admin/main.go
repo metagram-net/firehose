@@ -59,6 +59,7 @@ func rootCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		userCmd(),
+		// TODO: dev/demo command to generate "realistic" data
 	)
 	return cmd
 }

@@ -162,6 +162,23 @@ func (u UserScope) Find(ctx context.Context, tx db.Queryable, id uuid.UUID) (*Re
 	return &r, scan.RowStrict(&r, rows)
 }
 
+func (u UserScope) List(ctx context.Context, tx db.Queryable, s Status, limit uint64) ([]Record, error) {
+	query, args, err := u._select().
+		Where(sq.Eq{"status": s}).
+		OrderBy("moved_at ASC").
+		Limit(limit).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	var rs []Record
+	return rs, scan.RowsStrict(&rs, rows)
+}
+
 func (u UserScope) Random(ctx context.Context, tx db.Queryable) (*Record, error) {
 	query, args, err := u._select().
 		Where(sq.Eq{"status": StatusUnread}).

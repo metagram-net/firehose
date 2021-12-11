@@ -27,6 +27,7 @@ func Server(log *zap.Logger, db *sql.DB) *mux.Router {
 	r.Methods(http.MethodGet).Path("/v1/drops/random").HandlerFunc(srv.Authed(dropSrv.Random))
 	r.Methods(http.MethodGet).Path("/v1/drops/next").HandlerFunc(srv.Authed(dropSrv.Next))
 	r.Methods(http.MethodGet).Path("/v1/drops/get/{id}").HandlerFunc(srv.Authed(dropSrv.Get))
+	r.Methods(http.MethodPost).Path("/v1/drops/list").HandlerFunc(srv.Authed(dropSrv.List))
 	r.Methods(http.MethodPost).Path("/v1/drops/create").HandlerFunc(srv.Authed(dropSrv.Create))
 	r.Methods(http.MethodPost).Path("/v1/drops/update/{id}").HandlerFunc(srv.Authed(dropSrv.Update))
 	r.Methods(http.MethodPost).Path("/v1/drops/delete/{id}").HandlerFunc(srv.Authed(dropSrv.Delete))

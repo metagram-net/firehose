@@ -13,8 +13,8 @@ import (
 	"syscall"
 
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose"
 	"github.com/metagram-net/firehose/api"
+	"github.com/metagram-net/firehose/server"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -66,7 +66,7 @@ func Main() error {
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%s", viper.GetString("host"), viper.GetString("port")),
-		Handler: firehose.Server(log, db),
+		Handler: server.New(log, db),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

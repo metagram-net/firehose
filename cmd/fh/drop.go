@@ -8,9 +8,7 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose/rest"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func dropCmd() *cobra.Command {
@@ -19,7 +17,6 @@ func dropCmd() *cobra.Command {
 		Short: "Manage drops",
 	}
 	cmd.AddCommand(
-		dropRandomCmd(),
 		dropNewCmd(),
 		dropGetCmd(),
 		dropNextCmd(),
@@ -27,37 +24,6 @@ func dropCmd() *cobra.Command {
 		dropEditCmd(),
 		dropDeleteCmd(),
 	)
-	return cmd
-}
-
-func dropRandomCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:          "random",
-		Short:        "Get a random drop",
-		Args:         cobra.NoArgs,
-		SilenceUsage: true,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx := cmd.Context()
-
-			c, err := rest.NewClient(
-				viper.GetString("url-base"),
-				viper.GetString("user-id"),
-				viper.GetString("api-key"),
-			)
-			if err != nil {
-				return err
-			}
-
-			res, err := c.Get(ctx, "drops/random")
-			if err != nil {
-				return err
-			}
-			defer res.Body.Close()
-
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
-		},
-	}
 	return cmd
 }
 
@@ -75,28 +41,16 @@ func dropNewCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			c, err := rest.NewClient(
-				viper.GetString("url-base"),
-				viper.GetString("user-id"),
-				viper.GetString("api-key"),
-			)
+			c, err := Client()
 			if err != nil {
 				return err
 			}
 
-			var reqBody bytes.Buffer
-			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
-				return err
-			}
-
-			res, err := c.Post(ctx, "drops/create", &reqBody)
+			d, err := c.Drops.Create(ctx, request.Title, request.URL)
 			if err != nil {
 				return err
 			}
-			defer res.Body.Close()
-
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
+			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
 	flags := cmd.Flags()
@@ -122,11 +76,7 @@ func dropEditCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			c, err := rest.NewClient(
-				viper.GetString("url-base"),
-				viper.GetString("user-id"),
-				viper.GetString("api-key"),
-			)
+			c, err := Client()
 			if err != nil {
 				return err
 			}
@@ -166,11 +116,7 @@ func dropDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			c, err := rest.NewClient(
-				viper.GetString("url-base"),
-				viper.GetString("user-id"),
-				viper.GetString("api-key"),
-			)
+			c, err := Client()
 			if err != nil {
 				return err
 			}
@@ -202,11 +148,7 @@ func dropGetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			c, err := rest.NewClient(
-				viper.GetString("url-base"),
-				viper.GetString("user-id"),
-				viper.GetString("api-key"),
-			)
+			c, err := Client()
 			if err != nil {
 				return err
 			}
@@ -236,11 +178,7 @@ func dropNextCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			c, err := rest.NewClient(
-				viper.GetString("url-base"),
-				viper.GetString("user-id"),
-				viper.GetString("api-key"),
-			)
+			c, err := Client()
 			if err != nil {
 				return err
 			}
@@ -273,11 +211,7 @@ func dropListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			c, err := rest.NewClient(
-				viper.GetString("url-base"),
-				viper.GetString("user-id"),
-				viper.GetString("api-key"),
-			)
+			c, err := Client()
 			if err != nil {
 				return err
 			}

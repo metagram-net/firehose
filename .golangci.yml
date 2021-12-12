@@ -53,6 +53,8 @@ linters-settings:
     case:
       rules:
         json: snake
+  unparam:
+    check-exported: true
 severity:
   default-severity: 'error'
   rules:

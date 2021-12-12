@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/metagram-net/firehose/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -61,4 +62,12 @@ func rootCmd() *cobra.Command {
 		dropCmd(),
 	)
 	return cmd
+}
+
+func Client() (*client.Client, error) {
+	return client.New(
+		viper.GetString("url-base"),
+		viper.GetString("user-id"),
+		viper.GetString("api-key"),
+	)
 }

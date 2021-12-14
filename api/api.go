@@ -10,41 +10,11 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
-	"github.com/metagram-net/firehose/apierror"
 	"github.com/metagram-net/firehose/auth/apikey"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/clock"
 	"github.com/metagram-net/firehose/db"
 	"go.uber.org/zap"
-)
-
-var (
-	ErrUnhandled = apierror.Error{
-		Status:  http.StatusInternalServerError,
-		Code:    "internal_server_error",
-		Message: "Oops, sorry! There's an unhandled error in here somewhere.",
-	}
-	ErrNotFound = apierror.Error{
-		Status:  http.StatusNotFound,
-		Code:    "not_found",
-		Message: "The requested route or resource does not exist.",
-	}
-	ErrMethodNotAllowed = apierror.Error{
-		Status: http.StatusMethodNotAllowed,
-		Code:   "method_not_allowed",
-		// TODO: Include the requested method and allowed methods in this message. (gorilla/mux #652)
-		Message: "The requested HTTP method cannot be handled by this route.",
-	}
-	ErrMissingAuthz = apierror.Error{
-		Status:  http.StatusUnauthorized,
-		Code:    "missing_authorization",
-		Message: "The Authorization header was missing or the wrong format.",
-	}
-	ErrInvalidAuthz = apierror.Error{
-		Status:  http.StatusUnauthorized,
-		Code:    "invalid_authorization",
-		Message: "The provided credentials were not valid.",
-	}
 )
 
 type User struct {
@@ -153,7 +123,7 @@ func NewLogMiddleware(log *zap.Logger) mux.MiddlewareFunc {
 }
 
 func WriteError(log *zap.Logger, w http.ResponseWriter, err error) error {
-	var e apierror.Error
+	var e Error
 	if !errors.As(err, &e) {
 		log.Warn("Unhandled error", zap.Error(err))
 		e = ErrUnhandled

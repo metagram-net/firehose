@@ -22,24 +22,28 @@ watch: ## Re-run the server on code changes
 	until fd . | entr -dr make run; do echo 'Change detected, restarting server'; done
 
 .PHONY: services
-services:
+services: ## Start development services
 	docker-compose up --detach
 
 .PHONY: services-stop
-services-stop:
+services-stop: ## Stop development services
 	docker-compose stop
 
 .PHONY: services-down
-services-down:
+services-down: ## Destroy development services
 	docker-compose down
 
 .PHONY: migrate
-migrate:
+migrate: ## Run database migrations
 	go run ./cmd/drift migrate
 
 .PHONY: lint
-lint:
+lint: ## Run linters
 	golangci-lint run
+
+.PHONY: test
+test: ## Run Go tests
+	go test ./...
 
 .PHONY: test-hurl
 test-hurl:

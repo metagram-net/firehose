@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/metagram-net/firehose/apierror"
-	"github.com/metagram-net/firehose/auth"
+	"github.com/metagram-net/firehose/auth/apikey"
+	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/clock"
 	"github.com/metagram-net/firehose/db"
 	"go.uber.org/zap"
@@ -33,7 +35,21 @@ var (
 		// TODO: Include the requested method and allowed methods in this message. (gorilla/mux #652)
 		Message: "The requested HTTP method cannot be handled by this route.",
 	}
+	ErrMissingAuthz = apierror.Error{
+		Status:  http.StatusUnauthorized,
+		Code:    "missing_authorization",
+		Message: "The Authorization header was missing or the wrong format.",
+	}
+	ErrInvalidAuthz = apierror.Error{
+		Status:  http.StatusUnauthorized,
+		Code:    "invalid_authorization",
+		Message: "The provided credentials were not valid.",
+	}
 )
+
+type User struct {
+	ID uuid.UUID `json:"id"`
+}
 
 type Context struct {
 	Ctx   context.Context
@@ -42,7 +58,7 @@ type Context struct {
 	Clock clock.Clock
 }
 
-type HandlerFunc func(Context, auth.User, http.ResponseWriter, *http.Request)
+type HandlerFunc func(Context, User, http.ResponseWriter, *http.Request)
 
 type Server struct {
 	log *zap.Logger
@@ -68,7 +84,7 @@ func (s *Server) Authed(next HandlerFunc) http.HandlerFunc {
 			}
 		}()
 
-		u, err := auth.FromRequest(ctx, s.log, tx, r)
+		u, err := authenticate(ctx, s.log, tx, r)
 		if err != nil {
 			Respond(s.log, w, nil, err)
 			return
@@ -82,6 +98,44 @@ func (s *Server) Authed(next HandlerFunc) http.HandlerFunc {
 		}
 		next(a, *u, w, r)
 	}
+}
+
+// TODO: Replace API key "passwords" with PK registration and request signing.
+
+func authenticate(ctx context.Context, log *zap.Logger, tx db.Queryable, req *http.Request) (*User, error) {
+	// If the header is missing completely, return a more helpful error.
+	if req.Header.Get("Authorization") == "" {
+		return nil, ErrMissingAuthz
+	}
+
+	// Parse out the user ID and token
+	username, password, ok := req.BasicAuth()
+	if !ok {
+		log.Warn("Invalid basic auth header")
+		return nil, ErrInvalidAuthz
+	}
+	userID, err := uuid.FromString(username)
+	if err != nil {
+		log.Warn("Could not parse user ID", zap.Error(err))
+		return nil, ErrInvalidAuthz
+	}
+	token, err := apikey.NewPlaintext(password)
+	if err != nil {
+		log.Warn("Could not parse token", zap.Error(err))
+		return nil, ErrInvalidAuthz
+	}
+
+	key, err := apikey.Find(ctx, tx, userID, token)
+	if err != nil {
+		log.Warn("Could not find API key by user ID and token", zap.Error(err))
+		return nil, ErrInvalidAuthz
+	}
+	u, err := user.Find(ctx, tx, key.UserID)
+	if err != nil {
+		log.Warn("Could not find user by ID", zap.Error(err))
+		return nil, ErrInvalidAuthz
+	}
+	return &User{ID: u.ID}, nil
 }
 
 func NewLogger() (*zap.Logger, error) {

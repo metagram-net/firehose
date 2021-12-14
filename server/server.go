@@ -9,7 +9,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/metagram-net/firehose/api"
-	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
 	"go.uber.org/zap"
@@ -40,7 +39,7 @@ func New(log *zap.Logger, db *sql.DB) *mux.Router {
 	return r
 }
 
-func whoami(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
+func whoami(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	api.Respond(a.Log, w, u, nil)
 }
 
@@ -58,13 +57,13 @@ func methodNotAllowed(log *zap.Logger) http.HandlerFunc {
 
 type Drops struct{}
 
-func (Drops) next(a api.Context, u auth.User, w http.ResponseWriter, _ *http.Request) {
+func (Drops) next(a api.Context, u api.User, w http.ResponseWriter, _ *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 	d, err := drop.Next(ctx, tx, u)
 	api.Respond(log, w, d, err)
 }
 
-func (Drops) get(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
+func (Drops) get(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	vars := mux.Vars(r)
@@ -78,7 +77,7 @@ func (Drops) get(a api.Context, u auth.User, w http.ResponseWriter, r *http.Requ
 	api.Respond(log, w, d, err)
 }
 
-func (Drops) list(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
+func (Drops) list(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	var req struct {
@@ -108,7 +107,7 @@ func (Drops) list(a api.Context, u auth.User, w http.ResponseWriter, r *http.Req
 	api.Respond(log, w, res{Drops: ds}, err)
 }
 
-func (Drops) create(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
+func (Drops) create(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
 
 	var req struct {
@@ -125,7 +124,7 @@ func (Drops) create(a api.Context, u auth.User, w http.ResponseWriter, r *http.R
 	api.Respond(log, w, d, err)
 }
 
-func (Drops) update(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
+func (Drops) update(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
 
 	vars := mux.Vars(r)
@@ -145,7 +144,7 @@ func (Drops) update(a api.Context, u auth.User, w http.ResponseWriter, r *http.R
 	api.Respond(log, w, d, err)
 }
 
-func (Drops) delete(a api.Context, u auth.User, w http.ResponseWriter, r *http.Request) {
+func (Drops) delete(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	vars := mux.Vars(r)

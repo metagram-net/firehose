@@ -11,7 +11,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose/auth"
+	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/clock"
 	"github.com/metagram-net/firehose/db"
@@ -55,13 +55,13 @@ func Tx(t *testing.T, ctx context.Context) *sql.Tx {
 	return tx
 }
 
-func User(t *testing.T, ctx context.Context, tx db.Queryable) auth.User {
+func User(t *testing.T, ctx context.Context, tx db.Queryable) api.User {
 	email := fmt.Sprintf("%x@user.test", UUID(t))
 	r, err := user.Create(ctx, tx, email)
 	if err != nil {
 		t.Fatalf("Could not create user: %s", err.Error())
 	}
-	return auth.User{ID: r.ID}
+	return api.User{ID: r.ID}
 }
 
 func UUID(t *testing.T) uuid.UUID {

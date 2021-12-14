@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/metagram-net/firehose/auth"
+	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
 	"github.com/metagram-net/firehose/drop/internal/drops"
 	"github.com/metagram-net/firehose/drop/internal/droptags"
@@ -60,7 +60,7 @@ func nullTime(t sql.NullTime) *time.Time {
 	return &t.Time
 }
 
-func Create(ctx context.Context, tx db.Queryable, user auth.User, title string, url string, tagIDs []uuid.UUID, now time.Time) (Drop, error) {
+func Create(ctx context.Context, tx db.Queryable, user api.User, title string, url string, tagIDs []uuid.UUID, now time.Time) (Drop, error) {
 	var ts []tags.Record
 	if len(tagIDs) > 0 {
 		var err error
@@ -90,7 +90,7 @@ type UpdateRequest struct {
 	Status *Status `json:"status"`
 }
 
-func Update(ctx context.Context, tx db.Queryable, user auth.User, id uuid.UUID, req UpdateRequest, now time.Time) (Drop, error) {
+func Update(ctx context.Context, tx db.Queryable, user api.User, id uuid.UUID, req UpdateRequest, now time.Time) (Drop, error) {
 	f := drops.Fields{
 		Title:  req.Title,
 		URL:    req.URL,
@@ -108,7 +108,7 @@ func Update(ctx context.Context, tx db.Queryable, user auth.User, id uuid.UUID, 
 	return model(*d, nil), err
 }
 
-func Delete(ctx context.Context, tx db.Queryable, user auth.User, id uuid.UUID) (Drop, error) {
+func Delete(ctx context.Context, tx db.Queryable, user api.User, id uuid.UUID) (Drop, error) {
 	// TODO(tags): Delete drop_tags
 	d, err := drops.User(user.ID).Delete(ctx, tx, id)
 	if err != nil {
@@ -117,7 +117,7 @@ func Delete(ctx context.Context, tx db.Queryable, user auth.User, id uuid.UUID) 
 	return model(*d, nil), err
 }
 
-func Get(ctx context.Context, tx db.Queryable, user auth.User, id uuid.UUID) (Drop, error) {
+func Get(ctx context.Context, tx db.Queryable, user api.User, id uuid.UUID) (Drop, error) {
 	d, err := drops.User(user.ID).Find(ctx, tx, id)
 	if err != nil {
 		return Drop{}, err
@@ -125,7 +125,7 @@ func Get(ctx context.Context, tx db.Queryable, user auth.User, id uuid.UUID) (Dr
 	return model(*d, nil), err
 }
 
-func Next(ctx context.Context, tx db.Queryable, user auth.User) (Drop, error) {
+func Next(ctx context.Context, tx db.Queryable, user api.User) (Drop, error) {
 	d, err := drops.User(user.ID).Next(ctx, tx)
 	if err != nil {
 		return Drop{}, err
@@ -133,7 +133,7 @@ func Next(ctx context.Context, tx db.Queryable, user auth.User) (Drop, error) {
 	return model(*d, nil), err
 }
 
-func List(ctx context.Context, tx db.Queryable, user auth.User, s Status, limit uint64) ([]Drop, error) {
+func List(ctx context.Context, tx db.Queryable, user api.User, s Status, limit uint64) ([]Drop, error) {
 	ds, err := drops.User(user.ID).List(ctx, tx, s, limit)
 	if err != nil {
 		return nil, err

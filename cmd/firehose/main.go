@@ -13,7 +13,6 @@ import (
 	"syscall"
 
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/server"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -52,7 +51,7 @@ func Main() error {
 		return err
 	}
 
-	log, err := api.NewLogger()
+	log, err := logger(viper.GetBool("development-logger"))
 	if err != nil {
 		return err
 	}
@@ -106,4 +105,11 @@ func Main() error {
 		return err
 	}
 	return nil
+}
+
+func logger(dev bool) (*zap.Logger, error) {
+	if dev {
+		return zap.NewDevelopment()
+	}
+	return zap.NewProduction()
 }

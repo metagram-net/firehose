@@ -108,11 +108,6 @@ func authenticate(ctx context.Context, log *zap.Logger, tx db.Queryable, req *ht
 	return &User{ID: u.ID}, nil
 }
 
-func NewLogger() (*zap.Logger, error) {
-	// TODO(prod): if production, zap.NewProduction()
-	return zap.NewDevelopment()
-}
-
 func NewLogMiddleware(log *zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

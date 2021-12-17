@@ -232,7 +232,7 @@ func skipTx(content string) bool {
 	return reNoTxComment.MatchString(content)
 }
 
-func claim(ctx context.Context, tx db.Queryable, id MigrationID, slug string) error {
+func claim(ctx context.Context, tx db.DBTX, id MigrationID, slug string) error {
 	query, args, err := db.Pq.Select().
 		Column("_drift_claim_migration("+sq.Placeholders(2)+")", id, slug).
 		ToSql()
@@ -243,7 +243,7 @@ func claim(ctx context.Context, tx db.Queryable, id MigrationID, slug string) er
 	return err
 }
 
-func run(ctx context.Context, tx db.Queryable, content string) error {
+func run(ctx context.Context, tx db.DBTX, content string) error {
 	_, err := tx.ExecContext(ctx, content)
 	return err
 }

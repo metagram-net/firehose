@@ -55,9 +55,10 @@ func Tx(t *testing.T, ctx context.Context) *sql.Tx {
 	return tx
 }
 
-func User(t *testing.T, ctx context.Context, tx db.Queryable) api.User {
+func User(t *testing.T, ctx context.Context, tx db.DBTX) api.User {
+	q := db.New(tx)
 	email := fmt.Sprintf("%x@user.test", UUID(t))
-	r, err := user.Create(ctx, tx, email)
+	r, err := user.Create(ctx, q, email)
 	if err != nil {
 		t.Fatalf("Could not create user: %s", err.Error())
 	}

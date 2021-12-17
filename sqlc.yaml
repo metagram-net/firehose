@@ -1,0 +1,19 @@
+version: 1
+overrides:
+  - db_type: "uuid"
+    go_type: "github.com/gofrs/uuid.UUID"
+  - db_type: "uuid"
+    nullable: true
+    go_type: "github.com/gofrs/uuid.UUID"
+  - column: "drops.status"
+    go_type: "github.com/metagram-net/firehose/db/types.DropStatus"
+packages:
+  - path: "db"
+    name: "db"
+    engine: "postgresql"
+    schema: "migrations"
+    queries: "queries"
+    emit_interface: true
+    emit_methods_with_db_argument: false
+rename:
+  url: 'URL'

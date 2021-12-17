@@ -2,15 +2,12 @@ package drop
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
-	"github.com/metagram-net/firehose/drop/internal/drops"
-	"github.com/metagram-net/firehose/drop/internal/droptags"
-	"github.com/metagram-net/firehose/drop/internal/tags"
+	"github.com/metagram-net/firehose/db/types"
 )
 
 type Drop struct {
@@ -27,121 +24,168 @@ type Tag struct {
 	Name string `json:"name"`
 }
 
-type Status = drops.Status
+type Status = types.DropStatus
 
-const (
-	StatusUnread = drops.StatusUnread
-	StatusRead   = drops.StatusRead
-	StatusSaved  = drops.StatusSaved
-)
-
-func model(dr drops.Record, trs []tags.Record) Drop {
+func model(d db.Drop, ts []db.Tag) Drop {
 	tags := make([]Tag, 0)
-	for _, t := range trs {
+	for _, t := range ts {
 		tags = append(tags, Tag{
 			ID:   t.ID.String(),
 			Name: t.Name,
 		})
 	}
 	return Drop{
-		ID:      dr.ID.String(),
-		Title:   dr.Title.String,
-		URL:     dr.URL,
-		Status:  dr.Status,
-		MovedAt: nullTime(dr.MovedAt),
+		ID:      d.ID.String(),
+		Title:   d.Title.String,
+		URL:     d.URL,
+		Status:  d.Status,
+		MovedAt: nullTime(d.MovedAt),
 		Tags:    tags,
 	}
 }
 
-func nullTime(t sql.NullTime) *time.Time {
-	if !t.Valid {
+func nullTime(t time.Time) *time.Time {
+	if t.IsZero() {
 		return nil
 	}
-	return &t.Time
+	return &t
 }
 
-func Create(ctx context.Context, tx db.Queryable, user api.User, title string, url string, tagIDs []uuid.UUID, now time.Time) (Drop, error) {
-	var ts []tags.Record
+func Create(ctx context.Context, q db.Queryable, user api.User, title string, url string, tagIDs []uuid.UUID, now time.Time) (Drop, error) {
+	var ts []db.Tag
 	if len(tagIDs) > 0 {
 		var err error
-		ts, err = tags.User(user.ID).FindAll(ctx, tx, tagIDs)
+		ts, err = q.TagFindAll(ctx, db.TagFindAllParams{
+			UserID: user.ID,
+			Ids:    tagIDs,
+		})
 		if err != nil {
 			return Drop{}, err
 		}
 	}
 
-	d, err := drops.User(user.ID).Create(ctx, tx, title, url, now)
+	d, err := q.DropCreate(ctx, db.DropCreateParams{
+		UserID:  user.ID,
+		Title:   db.NullString(&title),
+		URL:     url,
+		Status:  types.StatusUnread,
+		MovedAt: now,
+	})
 	if err != nil {
 		return Drop{}, err
 	}
 
-	if len(ts) > 0 {
-		_, err := droptags.Insert(ctx, tx, *d, ts)
-		if err != nil {
-			return Drop{}, err
-		}
+	_, err = db.DropTagsApply(ctx, q, d, ts)
+	if err != nil {
+		return Drop{}, err
 	}
-	return model(*d, ts), err
+	return model(d, ts), err
 }
 
 type UpdateRequest struct {
-	Title  *string `json:"title"`
-	URL    *string `json:"url"`
-	Status *Status `json:"status"`
+	Title *string `json:"title"`
+	URL   string  `json:"url"`
 }
 
-func Update(ctx context.Context, tx db.Queryable, user api.User, id uuid.UUID, req UpdateRequest, now time.Time) (Drop, error) {
-	f := drops.Fields{
-		Title:  req.Title,
+func Update(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, req UpdateRequest) (Drop, error) {
+	d, err := q.DropUpdate(ctx, db.DropUpdateParams{
+		UserID: user.ID,
+		ID:     id,
+		Title:  db.NullString(req.Title),
 		URL:    req.URL,
-		Status: req.Status,
-	}
-	// Mark when the status changed so streams act more like FIFO queues.
-	if f.Status != nil {
-		f.MovedAt = &now
-	}
-	d, err := drops.User(user.ID).Update(ctx, tx, id, f)
+	})
+	// TODO(tags): Update drop_tags
 	if err != nil {
 		return Drop{}, err
 	}
-	// TODO(tags): Update tags
-	return model(*d, nil), err
+	return model(d, nil), nil
 }
 
-func Delete(ctx context.Context, tx db.Queryable, user api.User, id uuid.UUID) (Drop, error) {
+func Move(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, status types.DropStatus, now time.Time) (Drop, error) {
+	d, err := q.DropMove(ctx, db.DropMoveParams{
+		UserID:  user.ID,
+		ID:      id,
+		Status:  status,
+		MovedAt: now,
+	})
+	if err != nil {
+		return Drop{}, err
+	}
+	return model(d, nil), nil
+}
+
+func Delete(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID) (Drop, error) {
 	// TODO(tags): Delete drop_tags
-	d, err := drops.User(user.ID).Delete(ctx, tx, id)
+	d, err := q.DropDelete(ctx, db.DropDeleteParams{
+		UserID: user.ID,
+		ID:     id,
+	})
 	if err != nil {
 		return Drop{}, err
 	}
-	return model(*d, nil), err
+	return model(d, nil), nil
 }
 
-func Get(ctx context.Context, tx db.Queryable, user api.User, id uuid.UUID) (Drop, error) {
-	d, err := drops.User(user.ID).Find(ctx, tx, id)
+func Get(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID) (Drop, error) {
+	d, err := q.DropFind(ctx, db.DropFindParams{
+		UserID: user.ID,
+		ID:     id,
+	})
 	if err != nil {
 		return Drop{}, err
 	}
-	return model(*d, nil), err
+	ts, err := q.TagsDrop(ctx, db.TagsDropParams{
+		UserID: user.ID,
+		ID:     d.ID,
+	})
+	return model(d, ts), err
 }
 
-func Next(ctx context.Context, tx db.Queryable, user api.User) (Drop, error) {
-	d, err := drops.User(user.ID).Next(ctx, tx)
+func Next(ctx context.Context, q db.Queryable, user api.User) (Drop, error) {
+	d, err := q.DropNext(ctx, user.ID)
 	if err != nil {
 		return Drop{}, err
 	}
-	return model(*d, nil), err
+	ts, err := q.TagsDrop(ctx, db.TagsDropParams{
+		UserID: user.ID,
+		ID:     d.ID,
+	})
+	return model(d, ts), err
 }
 
-func List(ctx context.Context, tx db.Queryable, user api.User, s Status, limit uint64) ([]Drop, error) {
-	ds, err := drops.User(user.ID).List(ctx, tx, s, limit)
+func List(ctx context.Context, q db.Queryable, user api.User, s Status, limit int32) ([]Drop, error) {
+	ds, err := q.DropList(ctx, db.DropListParams{
+		UserID:   user.ID,
+		Statuses: []string{s.String()},
+		Limit:    limit,
+	})
 	if err != nil {
 		return nil, err
 	}
+	var dropIDs []uuid.UUID
+
+	tagRows, err := q.TagsDrops(ctx, db.TagsDropsParams{
+		UserID:  user.ID,
+		DropIds: dropIDs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	tags := make(map[uuid.UUID][]db.Tag)
+	for _, r := range tagRows {
+		tags[r.DropID] = append(tags[r.DropID], db.Tag{
+			ID:        r.ID,
+			UserID:    r.UserID,
+			Name:      r.Name,
+			CreatedAt: r.CreatedAt,
+			UpdatedAt: r.UpdatedAt,
+		})
+	}
+
 	// The list of drops should never be nil/null, so always make the slice.
 	res := make([]Drop, 0)
 	for _, d := range ds {
-		res = append(res, model(d, nil))
+		res = append(res, model(d, tags[d.ID]))
 	}
 	return res, err
 }

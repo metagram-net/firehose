@@ -9,13 +9,13 @@ require (
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
-	github.com/jackc/pgconn v1.10.0
-	github.com/jackc/pgx/v4 v4.11.0
+	github.com/jackc/pgconn v1.10.1
+	github.com/jackc/pgx/v4 v4.14.0
+	github.com/kyleconroy/sqlc v1.11.0
+	github.com/lib/pq v1.10.4
 	github.com/pascaldekloe/name v1.0.0 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0
-	github.com/stretchr/testify v1.7.0 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
+	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.19.1
 )

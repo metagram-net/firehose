@@ -12,6 +12,7 @@ help: ## List targets in this Makefile
 .PHONY: gen
 gen: ## Write generated code to files
 	go generate ./...
+	sqlc generate
 
 .PHONY: run
 run: ## Run the server

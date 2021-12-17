@@ -54,7 +54,8 @@ func (s *Server) Authed(next HandlerFunc) http.HandlerFunc {
 			}
 		}()
 
-		u, err := authenticate(ctx, s.log, tx, r)
+		q := db.New(tx)
+		u, err := authenticate(ctx, s.log, q, r)
 		if err != nil {
 			Respond(s.log, w, nil, err)
 			return
@@ -63,7 +64,7 @@ func (s *Server) Authed(next HandlerFunc) http.HandlerFunc {
 		a := Context{
 			Ctx:   ctx,
 			Log:   s.log,
-			Tx:    tx,
+			Tx:    db.New(tx),
 			Clock: clock.Freeze(time.Now()),
 		}
 		next(a, *u, w, r)
@@ -72,7 +73,7 @@ func (s *Server) Authed(next HandlerFunc) http.HandlerFunc {
 
 // TODO: Replace API key "passwords" with PK registration and request signing.
 
-func authenticate(ctx context.Context, log *zap.Logger, tx db.Queryable, req *http.Request) (*User, error) {
+func authenticate(ctx context.Context, log *zap.Logger, q db.Querier, req *http.Request) (*User, error) {
 	// If the header is missing completely, return a more helpful error.
 	if req.Header.Get("Authorization") == "" {
 		return nil, ErrMissingAuthz
@@ -95,12 +96,12 @@ func authenticate(ctx context.Context, log *zap.Logger, tx db.Queryable, req *ht
 		return nil, ErrInvalidAuthz
 	}
 
-	key, err := apikey.Find(ctx, tx, userID, token)
+	key, err := apikey.Find(ctx, q, userID, token)
 	if err != nil {
 		log.Warn("Could not find API key by user ID and token", zap.Error(err))
 		return nil, ErrInvalidAuthz
 	}
-	u, err := user.Find(ctx, tx, key.UserID)
+	u, err := user.Find(ctx, q, key.UserID)
 	if err != nil {
 		log.Warn("Could not find user by ID", zap.Error(err))
 		return nil, ErrInvalidAuthz

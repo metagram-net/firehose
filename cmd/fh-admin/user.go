@@ -7,8 +7,8 @@ import (
 
 	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
+	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/auth/apikey"
-	"github.com/metagram-net/firehose/auth/user"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -53,29 +53,22 @@ func userRegisterCmd() *cobra.Command {
 
 type registration struct {
 	userID uuid.UUID
-	apiKey *apikey.Plaintext
+	apiKey apikey.Plaintext
 }
 
-func userRegister(ctx context.Context, db *sql.DB, email string) (registration, error) {
-	var zero registration
-
+func userRegister(ctx context.Context, db *sql.DB, email string) (*registration, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return zero, err
+		return nil, err
 	}
 
-	u, err := user.Create(ctx, tx, email)
+	reg, err := auth.RegisterUser(ctx, db, email)
 	if err != nil {
-		return zero, fmt.Errorf("could not create user: %w", err)
+		return nil, err
 	}
 
-	key, _, err := apikey.Create(ctx, tx, "Default", u.ID)
-	if err != nil {
-		return zero, fmt.Errorf("could not create API key: %w", err)
-	}
-
-	return registration{
-		userID: u.ID,
-		apiKey: key,
+	return &registration{
+		userID: reg.User.ID,
+		apiKey: reg.Plaintext,
 	}, tx.Commit()
 }

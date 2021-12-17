@@ -9,6 +9,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/metagram-net/firehose/api"
+	"github.com/metagram-net/firehose/db/types"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
 	"go.uber.org/zap"
@@ -82,7 +83,7 @@ func (Drops) list(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 
 	var req struct {
 		Status drop.Status `json:"status"`
-		Limit  *uint64     `json:"limit"`
+		Limit  *int32      `json:"limit"`
 		// TODO(tags): Implement tags
 		// Tags   []uuid.UUID `json:"tags"`
 	}
@@ -95,7 +96,7 @@ func (Drops) list(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 	// consumable (videos and PDFs are the usual examples) so you have to
 	// "scroll past" a few drops. But the point is to avoid scrolling for a
 	// long time to find something, so don't allow large limits here.
-	limit := uint64(20)
+	limit := int32(20)
 	if req.Limit != nil && *req.Limit < limit {
 		limit = *req.Limit
 	}
@@ -125,7 +126,7 @@ func (Drops) create(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 }
 
 func (Drops) update(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
-	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
+	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
 	vars := mux.Vars(r)
 	id, err := uuid.FromString(vars["id"])
@@ -140,7 +141,29 @@ func (Drops) update(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	d, err := drop.Update(ctx, tx, u, id, req, clock.Now())
+	d, err := drop.Update(ctx, tx, u, id, req)
+	api.Respond(log, w, d, err)
+}
+
+func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
+	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
+
+	vars := mux.Vars(r)
+	id, err := uuid.FromString(vars["id"])
+	if err != nil {
+		api.Respond(log, w, nil, err)
+		return
+	}
+
+	var req struct {
+		Status types.DropStatus `json:"status"`
+	}
+	if err := unmarshal(r, &req); err != nil {
+		api.Respond(log, w, nil, err)
+		return
+	}
+
+	d, err := drop.Move(ctx, tx, u, id, req.Status, clock.Now())
 	api.Respond(log, w, d, err)
 }
 

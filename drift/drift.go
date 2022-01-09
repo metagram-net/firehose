@@ -341,7 +341,7 @@ func safeWriteFile(path string, data []byte, perm os.FileMode) error {
 //go:embed init.sql
 var initContent string
 
-func Renumber(dir string) error {
+func Renumber(dir string, write bool) error {
 	files, err := available(dir)
 	if err != nil {
 		return err
@@ -369,6 +369,10 @@ func Renumber(dir string) error {
 		fmt.Fprintf(table, "%s\t->\t%s\n", r.from, r.to)
 	}
 	table.Flush()
+
+	if !write {
+		return nil
+	}
 
 	for _, r := range renames {
 		old := filepath.Join(dir, r.from)

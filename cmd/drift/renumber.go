@@ -8,6 +8,8 @@ import (
 )
 
 func renumberCmd() *cobra.Command {
+	var write bool
+
 	cmd := &cobra.Command{
 		Use:          "renumber",
 		Short:        "Renumber migrations to fix filesystem sorting",
@@ -15,9 +17,11 @@ func renumberCmd() *cobra.Command {
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			dir := viper.GetString("migrations-dir")
-			// TODO: --dry-run to print the renames before executing them.
-			return drift.Renumber(dir)
+			return drift.Renumber(dir, write)
 		},
 	}
+
+	flags := cmd.Flags()
+	flags.BoolVarP(&write, "write", "w", false, "Execute renames instead of just printing them")
 	return cmd
 }

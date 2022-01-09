@@ -1,0 +1,4 @@
+-- Timestamp: {{.ID}}
+-- Slug:      {{.Slug}}
+--
+-- TODO: Write your migration here!

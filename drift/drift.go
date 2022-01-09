@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"text/tabwriter"
+	"text/template"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -265,7 +266,11 @@ func Setup(migrationsDir string) (string, error) {
 }
 
 // NewFile creates a new migration file with a placeholder comment in it.
-func NewFile(migrationsDir string, id MigrationID, slug string, template string) (string, error) {
+func NewFile(migrationsDir string, id MigrationID, slug string, tmpl *template.Template) (string, error) {
+	if tmpl == nil {
+		tmpl = defaultTemplate
+	}
+
 	if id == -1 {
 		var err error
 		ts := time.Now().Unix()
@@ -288,9 +293,26 @@ func NewFile(migrationsDir string, id MigrationID, slug string, template string)
 	slug = slugify(slug)
 	name := filename(idWidth(files), id, slug)
 	path := filepath.Join(migrationsDir, name)
+	data := TemplateData{
+		ID:   id,
+		Slug: slug,
+	}
 
 	//#nosec G306 // Normal permissions for non-sensitive files.
-	return path, os.WriteFile(path, []byte(template), 0o644)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
+		return "", err
+	}
+	return path, tmpl.Execute(f, data)
+}
+
+//go:embed new.sql
+var newContent string
+var defaultTemplate = template.Must(template.New("default").Parse(newContent))
+
+type TemplateData struct {
+	ID   MigrationID
+	Slug string
 }
 
 // reSeparator matches runs of common characters types as separators in

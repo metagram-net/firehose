@@ -1,1 +1,2 @@
 migrations-dir = "migrations"
+template-file = "migrations/_template.sql"

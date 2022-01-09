@@ -32,7 +32,7 @@ func TestCreate(t *testing.T) {
 	assert.Equal(t, "Example Dot Net", d.Title)
 	assert.Equal(t, "https://example.net", d.URL)
 	assert.Equal(t, types.StatusUnread, d.Status)
-	assert.WithinDuration(t, clock.Now(), *d.MovedAt, 0)
+	assert.WithinDuration(t, clock.Now(), d.MovedAt, 0)
 	assert.Empty(t, d.Tags)
 }
 

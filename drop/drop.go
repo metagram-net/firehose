@@ -11,12 +11,12 @@ import (
 )
 
 type Drop struct {
-	ID      string     `json:"id"`
-	Title   string     `json:"title"`
-	URL     string     `json:"url"`
-	Status  Status     `json:"status"`
-	MovedAt *time.Time `json:"moved_at"` // TODO: make non-nullable
-	Tags    []Tag      `json:"tags"`
+	ID      string    `json:"id"`
+	Title   string    `json:"title"`
+	URL     string    `json:"url"`
+	Status  Status    `json:"status"`
+	MovedAt time.Time `json:"moved_at"`
+	Tags    []Tag     `json:"tags"`
 }
 
 type Tag struct {
@@ -39,16 +39,9 @@ func model(d db.Drop, ts []db.Tag) Drop {
 		Title:   d.Title.String,
 		URL:     d.URL,
 		Status:  d.Status,
-		MovedAt: nullTime(d.MovedAt),
+		MovedAt: d.MovedAt,
 		Tags:    tags,
 	}
-}
-
-func nullTime(t time.Time) *time.Time {
-	if t.IsZero() {
-		return nil
-	}
-	return &t
 }
 
 func Create(ctx context.Context, q db.Queryable, user api.User, title string, url string, tagIDs []uuid.UUID, now time.Time) (Drop, error) {

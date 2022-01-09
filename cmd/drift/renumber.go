@@ -14,9 +14,9 @@ func renumberCmd() *cobra.Command {
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx := cmd.Context()
 			dir := viper.GetString("migrations-dir")
-			return drift.Renumber(ctx, dir)
+			// TODO: --dry-run to print the renames before executing them.
+			return drift.Renumber(dir)
 		},
 	}
 	return cmd

@@ -360,7 +360,7 @@ select _drift_claim_migration(0, 'init');
 commit;
 `
 
-func Renumber(ctx context.Context, dir string) error {
+func Renumber(dir string) error {
 	files, err := available(dir)
 	if err != nil {
 		return err

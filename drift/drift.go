@@ -77,7 +77,10 @@ func mustID(s string) MigrationID {
 
 // Migrate runs all unapplied migrations in ID order, least to greatest. It
 // skips any migrations that have already been applied.
-func Migrate(ctx context.Context, db *sql.DB, migrationsDir string) error {
+//
+// If until is non-nil, this will also skip any migrations with IDs greater
+// than it.
+func Migrate(ctx context.Context, db *sql.DB, migrationsDir string, until *MigrationID) error {
 	// 1. select * from schema_migrations
 	records, err := applied(db)
 	if err != nil {
@@ -93,6 +96,11 @@ func Migrate(ctx context.Context, db *sql.DB, migrationsDir string) error {
 	// 3. diff IDs
 	needed := diff(records, files)
 	for _, f := range needed {
+		if until != nil && f.ID > *until {
+			log.Printf("Skipping migration because of until: %s", f.Name)
+			continue
+		}
+
 		log.Printf("Applying %s", f.Name)
 		if err := apply(ctx, db, f); err != nil {
 			return err

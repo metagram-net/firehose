@@ -11,7 +11,8 @@ import (
 )
 
 func migrateCmd() *cobra.Command {
-	// TODO: Add a `--to id` flag to limit the migrations that apply.
+	until := new(drift.MigrationID)
+
 	cmd := &cobra.Command{
 		Use:          "migrate",
 		Short:        "Run migrations",
@@ -27,8 +28,11 @@ func migrateCmd() *cobra.Command {
 			}
 			defer db.Close()
 
-			return drift.Migrate(ctx, db, dir)
+			return drift.Migrate(ctx, db, dir, until)
 		},
 	}
+
+	flags := cmd.Flags()
+	flags.Var(until, "until", "Maximum migration ID to run (default: run all migrations)")
 	return cmd
 }

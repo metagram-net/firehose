@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 
-	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +21,7 @@ func dropCmd() *cobra.Command {
 		dropNextCmd(),
 		dropListCmd(),
 		dropEditCmd(),
+		dropMoveCmd(),
 		dropDeleteCmd(),
 	)
 	return cmd
@@ -63,9 +63,8 @@ func dropNewCmd() *cobra.Command {
 func dropEditCmd() *cobra.Command {
 	var id string
 	var request struct {
-		Title  string `json:"title,omitempty"`
-		URL    string `json:"url,omitempty"`
-		Status string `json:"status,omitempty"`
+		Title string `json:"title,omitempty"`
+		URL   string `json:"url,omitempty"`
 	}
 
 	cmd := &cobra.Command{
@@ -101,6 +100,46 @@ func dropEditCmd() *cobra.Command {
 	cmd.MarkFlagRequired("id")
 	flags.StringVar(&request.Title, "title", "", "Set the title")
 	flags.StringVar(&request.URL, "url", "", "Set the URL")
+	return cmd
+}
+
+func dropMoveCmd() *cobra.Command {
+	var id string
+	var request struct {
+		Status string `json:"status,omitempty"`
+	}
+
+	cmd := &cobra.Command{
+		Use:          "edit",
+		Short:        "Edit a drop",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+
+			c, err := Client()
+			if err != nil {
+				return err
+			}
+
+			var reqBody bytes.Buffer
+			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
+				return err
+			}
+
+			res, err := c.Post(ctx, fmt.Sprintf("drops/move/%s", id), &reqBody)
+			if err != nil {
+				return err
+			}
+			defer res.Body.Close()
+
+			_, err = io.Copy(os.Stdout, res.Body)
+			return err
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&id, "id", "", "The drop ID")
+	cmd.MarkFlagRequired("id")
 	flags.StringVar(&request.Status, "status", "", "Set the status")
 	return cmd
 }

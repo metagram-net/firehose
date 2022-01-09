@@ -9,24 +9,24 @@ import (
 	"fmt"
 )
 
-const _DropStatusName = "unknownunreadreadsaved"
+const _DropStatusName = "unreadreadsaved"
 
-var _DropStatusIndex = [...]uint8{0, 7, 13, 17, 22}
+var _DropStatusIndex = [...]uint8{0, 6, 10, 15}
 
 func (i DropStatus) String() string {
+	i -= 1
 	if i < 0 || i >= DropStatus(len(_DropStatusIndex)-1) {
-		return fmt.Sprintf("DropStatus(%d)", i)
+		return fmt.Sprintf("DropStatus(%d)", i+1)
 	}
 	return _DropStatusName[_DropStatusIndex[i]:_DropStatusIndex[i+1]]
 }
 
-var _DropStatusValues = []DropStatus{0, 1, 2, 3}
+var _DropStatusValues = []DropStatus{1, 2, 3}
 
 var _DropStatusNameToValueMap = map[string]DropStatus{
-	_DropStatusName[0:7]:   0,
-	_DropStatusName[7:13]:  1,
-	_DropStatusName[13:17]: 2,
-	_DropStatusName[17:22]: 3,
+	_DropStatusName[0:6]:   1,
+	_DropStatusName[6:10]:  2,
+	_DropStatusName[10:15]: 3,
 }
 
 // DropStatusString retrieves an enum value from the enum constants string name.

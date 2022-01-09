@@ -7,8 +7,16 @@ package types
 type DropStatus int
 
 const (
-	StatusUnknown DropStatus = iota // unknown
-	StatusUnread                    // unread
-	StatusRead                      // read
-	StatusSaved                     // saved
+	StatusUnread DropStatus = iota + 1 // unread
+	StatusRead                         // read
+	StatusSaved                        // saved
 )
+
+// DropStatusValueStrings returns all valid values of the enum as strings.
+func DropStatusValueStrings() []string {
+	return []string{
+		StatusUnread.String(),
+		StatusRead.String(),
+		StatusSaved.String(),
+	}
+}

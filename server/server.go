@@ -3,8 +3,10 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
@@ -32,6 +34,7 @@ func New(log *zap.Logger, db *sql.DB) *mux.Router {
 	r.Methods(http.MethodPost).Path("/v1/drops/list").HandlerFunc(srv.Authed(drops.list))
 	r.Methods(http.MethodPost).Path("/v1/drops/create").HandlerFunc(srv.Authed(drops.create))
 	r.Methods(http.MethodPost).Path("/v1/drops/update/{id}").HandlerFunc(srv.Authed(drops.update))
+	r.Methods(http.MethodPost).Path("/v1/drops/move/{id}").HandlerFunc(srv.Authed(drops.move))
 	r.Methods(http.MethodPost).Path("/v1/drops/delete/{id}").HandlerFunc(srv.Authed(drops.delete))
 
 	r.NotFoundHandler = notFound(log)
@@ -156,14 +159,25 @@ func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 	}
 
 	var req struct {
-		Status types.DropStatus `json:"status"`
+		Status string `json:"status"`
 	}
 	if err := unmarshal(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
 
-	d, err := drop.Move(ctx, tx, u, id, req.Status, clock.Now())
+	status, err := types.DropStatusString(req.Status)
+	if err != nil {
+		err := validationError(
+			"status",
+			req.Status,
+			fmt.Sprintf(`value should be in [%s]`, strings.Join(types.DropStatusValueStrings(), ", ")),
+		)
+		api.Respond(log, w, nil, err)
+		return
+	}
+
+	d, err := drop.Move(ctx, tx, u, id, status, clock.Now())
 	api.Respond(log, w, d, err)
 }
 
@@ -187,4 +201,12 @@ func unmarshal(r *http.Request, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(b, v)
+}
+
+func validationError(field string, value interface{}, message string) api.Error {
+	return api.Error{
+		Status:  http.StatusBadRequest,
+		Code:    "validation_error",
+		Message: fmt.Sprintf(`field "%s" (value "%s"): %s`, field, value, message),
+	}
 }

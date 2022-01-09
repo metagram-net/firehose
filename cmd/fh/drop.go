@@ -110,8 +110,8 @@ func dropMoveCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:          "edit",
-		Short:        "Edit a drop",
+		Use:          "move",
+		Short:        "Move a drop to a different status",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {

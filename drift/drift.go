@@ -22,9 +22,8 @@ import (
 )
 
 var (
-	ErrNegativeID      = errors.New("migration ID must not be negative")
-	ErrDuplicateID     = errors.New("duplicate migration ID")
-	ErrInvalidFilename = errors.New("filename does not fit migration pattern")
+	ErrNegativeID  = errors.New("migration ID must not be negative")
+	ErrDuplicateID = errors.New("duplicate migration ID")
 )
 
 // A MigrationID is a nonnegative integer that will be used to sort migrations.
@@ -158,7 +157,9 @@ func available(dir string) ([]migrationFile, error) {
 		name := f.Name()
 		m := reFilename.FindStringSubmatch(name)
 		if m == nil {
-			return nil, fmt.Errorf("%w: %s", ErrInvalidFilename, name)
+			// TODO: Only log this in verbose mode
+			log.Printf("Skipping non-migration file: %s", name)
+			continue
 		}
 		path := filepath.Join(dir, name)
 		content, err := os.ReadFile(path)

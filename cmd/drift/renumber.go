@@ -7,12 +7,22 @@ import (
 	"github.com/spf13/viper"
 )
 
+const renumberLong string = `Renumber migrations to fix filesystem sorting.
+
+This command renames migration files so that string sorting matches the numeric
+sorting of the IDs. This happens by adding or removing prefix zeroes on the IDs
+to make all the IDs the shortest width that fits them all.
+
+Other commands ignore zero prefixes when interpreting IDs as integers. This
+renumbering is never necessary for correctness.`
+
 func renumberCmd() *cobra.Command {
 	var write bool
 
 	cmd := &cobra.Command{
 		Use:          "renumber",
 		Short:        "Renumber migrations to fix filesystem sorting",
+		Long:         renumberLong,
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {

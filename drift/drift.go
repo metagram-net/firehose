@@ -355,7 +355,7 @@ func Renumber(dir string, write bool) error {
 	var renames []rename
 	for _, f := range files {
 		id := f.idRaw
-		if len(id) < width {
+		if len(id) != width {
 			renames = append(renames, rename{
 				from: f.Name,
 				to:   filename(width, f.ID, f.Slug),

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/metagram-net/firehose/clio"
 	"github.com/spf13/viper"
 )
 
@@ -21,9 +22,11 @@ func main() {
 		log.Print("Interrupt received, cleaning up before quitting. Interrupt again to force-quit.")
 	}()
 
-	err := rootCmd().ExecuteContext(ctx)
+	io := clio.New()
+	err := rootCmd(io).ExecuteContext(ctx)
 	if err != nil {
-		log.Fatal(err.Error())
+		io.Errorf(err.Error())
+		os.Exit(1)
 	}
 }
 

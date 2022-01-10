@@ -3,13 +3,14 @@ package main
 import (
 	"errors"
 
+	"github.com/metagram-net/firehose/clio"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 const defaultMigrationsDir = "migrations"
 
-func rootCmd() *cobra.Command {
+func rootCmd(io *clio.IO) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "drift",
 		Short:   "Manage SQL migrations",
@@ -21,18 +22,20 @@ func rootCmd() *cobra.Command {
 				// No config file needed, use the defaults.
 				return nil
 			}
+			io.SetVerbosity(clio.Verbosity(viper.GetInt("verbose")))
 			return err
 		},
 	}
-	flags := cmd.Flags()
+	flags := cmd.PersistentFlags()
 	flags.String("migrations-dir", defaultMigrationsDir, "Directory containing migration files")
+	flags.CountP("verbose", "v", "Log verbosity")
 	viper.BindPFlags(flags)
 
 	cmd.AddCommand(
-		migrateCmd(),
-		newCmd(),
-		setupCmd(),
-		renumberCmd(),
+		migrateCmd(io),
+		newCmd(io),
+		setupCmd(io),
+		renumberCmd(io),
 	)
 	return cmd
 }

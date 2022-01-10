@@ -13,6 +13,7 @@ require (
 	github.com/jackc/pgx/v4 v4.14.0
 	github.com/kyleconroy/sqlc v1.11.0
 	github.com/lib/pq v1.10.4
+	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pascaldekloe/name v1.0.0 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0

@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
+	"github.com/metagram-net/firehose/clio"
 	"github.com/metagram-net/firehose/drift"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,7 +17,7 @@ to make all the IDs the shortest width that fits them all.
 Other commands ignore zero prefixes when interpreting IDs as integers. This
 renumbering is never necessary for correctness.`
 
-func renumberCmd() *cobra.Command {
+func renumberCmd(io *clio.IO) *cobra.Command {
 	var write bool
 
 	cmd := &cobra.Command{
@@ -27,7 +28,7 @@ func renumberCmd() *cobra.Command {
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			dir := viper.GetString("migrations-dir")
-			return drift.Renumber(dir, write)
+			return drift.Renumber(io, dir, write)
 		},
 	}
 

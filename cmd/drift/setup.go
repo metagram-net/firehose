@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
-
+	"github.com/metagram-net/firehose/clio"
 	"github.com/metagram-net/firehose/drift"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func setupCmd() *cobra.Command {
+func setupCmd(io *clio.IO) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "setup",
 		Aliases:      []string{"init"},
@@ -21,7 +20,8 @@ func setupCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Wrote %s\n", path)
+			io.Logf("Created the first migration file: %s", path)
+			io.Logf("Run the migrate command to apply it.")
 			return nil
 		},
 	}

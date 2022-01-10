@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
+	"github.com/metagram-net/firehose/clio"
 	"github.com/metagram-net/firehose/drift"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func migrateCmd() *cobra.Command {
+func migrateCmd(io *clio.IO) *cobra.Command {
 	until := new(drift.MigrationID)
 
 	cmd := &cobra.Command{
@@ -28,7 +29,7 @@ func migrateCmd() *cobra.Command {
 			}
 			defer db.Close()
 
-			return drift.Migrate(ctx, db, dir, until)
+			return drift.Migrate(ctx, io, db, dir, until)
 		},
 	}
 

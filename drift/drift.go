@@ -6,13 +6,11 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
-	"text/tabwriter"
 	"text/template"
 	"time"
 
@@ -26,6 +24,13 @@ var (
 	ErrNegativeID  = errors.New("migration ID must not be negative")
 	ErrDuplicateID = errors.New("duplicate migration ID")
 )
+
+type IO interface {
+	Logf(format string, args ...interface{})
+	LogTable(cols []string, rows [][]string)
+	Infof(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
+}
 
 // A MigrationID is a nonnegative integer that will be used to sort migrations.
 //
@@ -80,7 +85,7 @@ func mustID(s string) MigrationID {
 //
 // If until is non-nil, this will also skip any migrations with IDs greater
 // than it.
-func Migrate(ctx context.Context, db *sql.DB, migrationsDir string, until *MigrationID) error {
+func Migrate(ctx context.Context, io IO, db *sql.DB, migrationsDir string, until *MigrationID) error {
 	// 1. select * from schema_migrations
 	records, err := applied(db)
 	if err != nil {
@@ -88,7 +93,7 @@ func Migrate(ctx context.Context, db *sql.DB, migrationsDir string, until *Migra
 	}
 
 	// 2. ls migrations_dir
-	files, err := available(migrationsDir)
+	files, err := available(io, migrationsDir)
 	if err != nil {
 		return fmt.Errorf("could not get available migrations: %w", err)
 	}
@@ -97,16 +102,16 @@ func Migrate(ctx context.Context, db *sql.DB, migrationsDir string, until *Migra
 	needed := diff(records, files)
 	for _, f := range needed {
 		if until != nil && f.ID > *until {
-			log.Printf("Skipping migration because of until: %s", f.Name)
+			io.Infof("Skipping migration because of until: %s", f.Name)
 			continue
 		}
 
-		log.Printf("Applying %s", f.Name)
+		io.Infof("Applying migration: %s", f.Name)
 		if err := apply(ctx, db, f); err != nil {
 			return err
 		}
 	}
-	log.Print("All migrations applied")
+	io.Logf("All migrations applied.")
 	return nil
 }
 
@@ -155,7 +160,7 @@ type migrationFile struct {
 
 // TODO: Use an afero.Fs to make this easier to test.
 
-func available(dir string) ([]migrationFile, error) {
+func available(io IO, dir string) ([]migrationFile, error) {
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("could not list migration files: %w", err)
@@ -166,8 +171,7 @@ func available(dir string) ([]migrationFile, error) {
 		name := f.Name()
 		m := reFilename.FindStringSubmatch(name)
 		if m == nil {
-			// TODO: Only log this in verbose mode
-			log.Printf("Skipping non-migration file: %s", name)
+			io.Infof("Ignoring non-migration file: %s", name)
 			continue
 		}
 		path := filepath.Join(dir, name)
@@ -274,7 +278,7 @@ func Setup(migrationsDir string) (string, error) {
 }
 
 // NewFile creates a new migration file with a placeholder comment in it.
-func NewFile(migrationsDir string, id MigrationID, slug string, tmpl *template.Template) (string, error) {
+func NewFile(io IO, migrationsDir string, id MigrationID, slug string, tmpl *template.Template) (string, error) {
 	if tmpl == nil {
 		tmpl = defaultTemplate
 	}
@@ -288,7 +292,7 @@ func NewFile(migrationsDir string, id MigrationID, slug string, tmpl *template.T
 		}
 	}
 
-	files, err := available(migrationsDir)
+	files, err := available(io, migrationsDir)
 	if err != nil {
 		return "", err
 	}
@@ -349,8 +353,8 @@ func safeWriteFile(path string, data []byte, perm os.FileMode) error {
 //go:embed init.sql
 var initContent string
 
-func Renumber(dir string, write bool) error {
-	files, err := available(dir)
+func Renumber(io IO, dir string, write bool) error {
+	files, err := available(io, dir)
 	if err != nil {
 		return err
 	}
@@ -371,12 +375,18 @@ func Renumber(dir string, write bool) error {
 		}
 	}
 
-	table := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-	log.Printf("Renames:")
-	for _, r := range renames {
-		fmt.Fprintf(table, "%s\t->\t%s\n", r.from, r.to)
+	if len(renames) == 0 {
+		io.Logf("Nothing to do.")
+		return nil
 	}
-	table.Flush()
+
+	cols := []string{"Old", "->", "New"}
+	var rows [][]string
+	for _, r := range renames {
+		rows = append(rows, []string{r.from, "->", r.to})
+	}
+	io.Logf("Renames:")
+	io.LogTable(cols, rows)
 
 	if !write {
 		return nil

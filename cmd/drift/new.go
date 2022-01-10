@@ -1,16 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"text/template"
 
+	"github.com/metagram-net/firehose/clio"
 	"github.com/metagram-net/firehose/drift"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func newCmd() *cobra.Command {
+func newCmd(io *clio.IO) *cobra.Command {
 	var (
 		// Set the default ID out of range to distinguish explicit zero.
 		id   drift.MigrationID = -1
@@ -31,11 +31,12 @@ func newCmd() *cobra.Command {
 				return err
 			}
 
-			path, err := drift.NewFile(dir, id, slug, tmpl)
+			path, err := drift.NewFile(io, dir, id, slug, tmpl)
 			if err != nil {
 				return err
 			}
-			fmt.Println(path)
+			io.Logf("Created new migration file: %s", path)
+			io.Printf(path)
 			return nil
 		},
 	}

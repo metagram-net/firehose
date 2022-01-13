@@ -4,11 +4,32 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/metagram-net/firehose/db/types"
 )
+
+type DropStatus string
+
+const (
+	DropStatusUnread DropStatus = "unread"
+	DropStatusRead   DropStatus = "read"
+	DropStatusSaved  DropStatus = "saved"
+)
+
+func (e *DropStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DropStatus(s)
+	case string:
+		*e = DropStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DropStatus: %T", src)
+	}
+	return nil
+}
 
 type ApiKey struct {
 	ID           uuid.UUID

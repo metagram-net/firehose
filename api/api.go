@@ -118,7 +118,7 @@ func NewLogMiddleware(log *zap.Logger) mux.MiddlewareFunc {
 	}
 }
 
-func WriteError(log *zap.Logger, w http.ResponseWriter, err error) error {
+func writeError(log *zap.Logger, w http.ResponseWriter, err error) error {
 	var e Error
 	if !errors.As(err, &e) {
 		log.Warn("Unhandled error", zap.Error(err))
@@ -133,7 +133,7 @@ func WriteError(log *zap.Logger, w http.ResponseWriter, err error) error {
 	})
 }
 
-func WriteResult(w http.ResponseWriter, v interface{}) error {
+func writeResult(w http.ResponseWriter, v interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
 }
@@ -141,9 +141,9 @@ func WriteResult(w http.ResponseWriter, v interface{}) error {
 func Respond(log *zap.Logger, w http.ResponseWriter, v interface{}, err error) {
 	var werr error
 	if err == nil {
-		werr = WriteResult(w, v)
+		werr = writeResult(w, v)
 	} else {
-		werr = WriteError(log, w, err)
+		werr = writeError(log, w, err)
 	}
 	if werr != nil {
 		log.Error("Could not write response, giving up", zap.Error(werr))

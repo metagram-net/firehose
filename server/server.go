@@ -161,14 +161,14 @@ func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 	var req struct {
 		Status string `json:"status"`
 	}
-	if err := unmarshal(r, &req); err != nil {
+	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
 
 	status, err := types.DropStatusString(req.Status)
 	if err != nil {
-		err := validationError(
+		err := api.ValidationError(
 			"status",
 			req.Status,
 			fmt.Sprintf(`value should be in [%s]`, strings.Join(types.DropStatusValueStrings(), ", ")),
@@ -201,12 +201,4 @@ func unmarshal(r *http.Request, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(b, v)
-}
-
-func validationError(field string, value interface{}, message string) api.Error {
-	return api.Error{
-		Status:  http.StatusBadRequest,
-		Code:    "validation_error",
-		Message: fmt.Sprintf(`field "%s" (value "%s"): %s`, field, value, message),
-	}
 }

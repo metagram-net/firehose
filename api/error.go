@@ -46,3 +46,11 @@ var (
 		Message: "The provided credentials were not valid.",
 	}
 )
+
+func ValidationError(field string, value interface{}, message string) Error {
+	return Error{
+		Status:  http.StatusBadRequest,
+		Code:    "validation_error",
+		Message: fmt.Sprintf(`field "%s" (value "%s"): %s`, field, value, message),
+	}
+}

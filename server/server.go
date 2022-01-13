@@ -2,9 +2,7 @@ package server
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -90,7 +88,7 @@ func (Drops) list(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 		// TODO(tags): Implement tags
 		// Tags   []uuid.UUID `json:"tags"`
 	}
-	if err := unmarshal(r, &req); err != nil {
+	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
@@ -119,7 +117,7 @@ func (Drops) create(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 		URL    string      `json:"url"`
 		TagIDs []uuid.UUID `json:"tag_ids"`
 	}
-	if err := unmarshal(r, &req); err != nil {
+	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
@@ -139,7 +137,7 @@ func (Drops) update(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 	}
 
 	var req drop.UpdateRequest
-	if err := unmarshal(r, &req); err != nil {
+	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
@@ -193,12 +191,4 @@ func (Drops) delete(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 
 	d, err := drop.Delete(ctx, tx, u, id)
 	api.Respond(log, w, d, err)
-}
-
-func unmarshal(r *http.Request, v interface{}) error {
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, v)
 }

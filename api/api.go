@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -149,4 +150,27 @@ func Respond(log *zap.Logger, w http.ResponseWriter, v interface{}, err error) {
 		log.Error("Could not write response, giving up", zap.Error(werr))
 		panic(werr)
 	}
+}
+
+type Validator interface {
+	Validate() error
+}
+
+// Parse reads the request body and unmarshals the JSON into v. For types that
+// implement Validator, this returns v.Validate() after unmarshaling.
+func Parse(r *http.Request, v interface{}) error {
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(b, v)
+	if err != nil {
+		return err
+	}
+	if vv, ok := v.(Validator); ok {
+		return vv.Validate()
+	}
+	// If it a request type doesn't define a validation function, being valid
+	// JSON is enough.
+	return nil
 }

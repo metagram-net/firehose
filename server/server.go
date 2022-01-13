@@ -79,15 +79,17 @@ func (Drops) get(a api.Context, u api.User, w http.ResponseWriter, r *http.Reque
 	api.Respond(log, w, d, err)
 }
 
+type ListRequest struct {
+	Status drop.Status `json:"status"`
+	Limit  *int32      `json:"limit"`
+	// TODO(tags): Implement tags
+	// Tags   []uuid.UUID `json:"tags"`
+}
+
 func (Drops) list(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx := a.Ctx, a.Log, a.Tx
 
-	var req struct {
-		Status drop.Status `json:"status"`
-		Limit  *int32      `json:"limit"`
-		// TODO(tags): Implement tags
-		// Tags   []uuid.UUID `json:"tags"`
-	}
+	var req ListRequest
 	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
@@ -109,14 +111,16 @@ func (Drops) list(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 	api.Respond(log, w, res{Drops: ds}, err)
 }
 
+type CreateRequest struct {
+	Title  string      `json:"title"`
+	URL    string      `json:"url"`
+	TagIDs []uuid.UUID `json:"tag_ids"`
+}
+
 func (Drops) create(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
 	ctx, log, tx, clock := a.Ctx, a.Log, a.Tx, a.Clock
 
-	var req struct {
-		Title  string      `json:"title"`
-		URL    string      `json:"url"`
-		TagIDs []uuid.UUID `json:"tag_ids"`
-	}
+	var req CreateRequest
 	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
@@ -124,6 +128,11 @@ func (Drops) create(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 
 	d, err := drop.Create(ctx, tx, u, req.Title, req.URL, req.TagIDs, clock.Now())
 	api.Respond(log, w, d, err)
+}
+
+type UpdateRequest struct {
+	Title *string `json:"title"`
+	URL   string  `json:"url"`
 }
 
 func (Drops) update(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
@@ -136,14 +145,21 @@ func (Drops) update(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var req drop.UpdateRequest
+	var req UpdateRequest
 	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return
 	}
 
-	d, err := drop.Update(ctx, tx, u, id, req)
+	d, err := drop.Update(ctx, tx, u, id, drop.UpdateRequest{
+		Title: req.Title,
+		URL:   req.URL,
+	})
 	api.Respond(log, w, d, err)
+}
+
+type MoveRequest struct {
+	Status string `json:"status"`
 }
 
 func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
@@ -156,9 +172,7 @@ func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req struct {
-		Status string `json:"status"`
-	}
+	var req MoveRequest
 	if err := api.Parse(r, &req); err != nil {
 		api.Respond(log, w, nil, err)
 		return

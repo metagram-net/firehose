@@ -76,8 +76,8 @@ func Create(ctx context.Context, q db.Queryable, user api.User, title string, ur
 }
 
 type UpdateRequest struct {
-	Title *string `json:"title"`
-	URL   string  `json:"url"`
+	Title *string
+	URL   string
 }
 
 func Update(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, req UpdateRequest) (Drop, error) {

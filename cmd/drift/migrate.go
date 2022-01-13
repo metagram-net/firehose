@@ -12,7 +12,8 @@ import (
 )
 
 func migrateCmd(io *clio.IO) *cobra.Command {
-	until := new(drift.MigrationID)
+	// Set the default ID out of range to distinguish explicit zero.
+	untilID := drift.MigrationID(-1)
 
 	cmd := &cobra.Command{
 		Use:          "migrate",
@@ -29,11 +30,15 @@ func migrateCmd(io *clio.IO) *cobra.Command {
 			}
 			defer db.Close()
 
+			var until *drift.MigrationID
+			if untilID >= 0 {
+				until = &untilID
+			}
 			return drift.Migrate(ctx, io, db, dir, until)
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.Var(until, "until", "Maximum migration ID to run (default: run all migrations)")
+	flags.Var(&untilID, "until", "Maximum migration ID to run (default: run all migrations)")
 	return cmd
 }

@@ -5,8 +5,8 @@ overrides:
   - db_type: "uuid"
     nullable: true
     go_type: "github.com/gofrs/uuid.UUID"
-  - column: "drops.status"
-    go_type: "github.com/metagram-net/firehose/db/types.DropStatus"
+  # - column: "drops.status"
+  #   go_type: "github.com/metagram-net/firehose/db/types.DropStatus"
 packages:
   - path: "db"
     name: "db"

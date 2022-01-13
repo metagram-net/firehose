@@ -9,7 +9,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/metagram-net/firehose/api"
-	"github.com/metagram-net/firehose/db/types"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
 	"go.uber.org/zap"
@@ -178,12 +177,12 @@ func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	status, err := types.DropStatusString(req.Status)
+	status, err := drop.StatusString(req.Status)
 	if err != nil {
 		err := api.ValidationError(
 			"status",
 			req.Status,
-			fmt.Sprintf(`value should be in [%s]`, strings.Join(types.DropStatusValueStrings(), ", ")),
+			fmt.Sprintf(`value should be in [%s]`, strings.Join(drop.StatusValueStrings(), ", ")),
 		)
 		api.Respond(log, w, nil, err)
 		return

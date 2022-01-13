@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/metagram-net/firehose/db/types"
 )
 
 type DropStatus string
@@ -45,7 +44,7 @@ type Drop struct {
 	UserID    uuid.UUID
 	Title     sql.NullString
 	URL       string
-	Status    types.DropStatus
+	Status    DropStatus
 	MovedAt   time.Time
 	CreatedAt time.Time
 	UpdatedAt time.Time

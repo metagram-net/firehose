@@ -10,7 +10,6 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/lib/pq"
-	"github.com/metagram-net/firehose/db/types"
 )
 
 const dropCreate = `-- name: DropCreate :one
@@ -24,7 +23,7 @@ type DropCreateParams struct {
 	UserID  uuid.UUID
 	Title   sql.NullString
 	URL     string
-	Status  types.DropStatus
+	Status  DropStatus
 	MovedAt time.Time
 }
 
@@ -156,7 +155,7 @@ returning id, user_id, title, url, status, moved_at, created_at, updated_at
 type DropMoveParams struct {
 	UserID  uuid.UUID
 	ID      uuid.UUID
-	Status  types.DropStatus
+	Status  DropStatus
 	MovedAt time.Time
 }
 

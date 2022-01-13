@@ -7,7 +7,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
-	"github.com/metagram-net/firehose/db/types"
 )
 
 type Drop struct {
@@ -24,8 +23,6 @@ type Tag struct {
 	Name string `json:"name"`
 }
 
-type Status = types.DropStatus
-
 func model(d db.Drop, ts []db.Tag) Drop {
 	tags := make([]Tag, 0)
 	for _, t := range ts {
@@ -38,7 +35,7 @@ func model(d db.Drop, ts []db.Tag) Drop {
 		ID:      d.ID.String(),
 		Title:   d.Title.String,
 		URL:     d.URL,
-		Status:  d.Status,
+		Status:  StatusModel(d.Status),
 		MovedAt: d.MovedAt,
 		Tags:    tags,
 	}
@@ -61,7 +58,7 @@ func Create(ctx context.Context, q db.Queryable, user api.User, title string, ur
 		UserID:  user.ID,
 		Title:   db.NullString(&title),
 		URL:     url,
-		Status:  types.StatusUnread,
+		Status:  db.DropStatusUnread,
 		MovedAt: now,
 	})
 	if err != nil {
@@ -94,11 +91,11 @@ func Update(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, re
 	return model(d, nil), nil
 }
 
-func Move(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, status types.DropStatus, now time.Time) (Drop, error) {
+func Move(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, status Status, now time.Time) (Drop, error) {
 	d, err := q.DropMove(ctx, db.DropMoveParams{
 		UserID:  user.ID,
 		ID:      id,
-		Status:  status,
+		Status:  status.Model(),
 		MovedAt: now,
 	})
 	if err != nil {

@@ -2,9 +2,7 @@ package server
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
@@ -158,7 +156,7 @@ func (Drops) update(a api.Context, u api.User, w http.ResponseWriter, r *http.Re
 }
 
 type MoveRequest struct {
-	Status string `json:"status"`
+	Status drop.Status `json:"status"`
 }
 
 func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Request) {
@@ -177,18 +175,7 @@ func (Drops) move(a api.Context, u api.User, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	status, err := drop.StatusString(req.Status)
-	if err != nil {
-		err := api.ValidationError(
-			"status",
-			req.Status,
-			fmt.Sprintf(`value should be in [%s]`, strings.Join(drop.StatusValueStrings(), ", ")),
-		)
-		api.Respond(log, w, nil, err)
-		return
-	}
-
-	d, err := drop.Move(ctx, tx, u, id, status, clock.Now())
+	d, err := drop.Move(ctx, tx, u, id, req.Status, clock.Now())
 	api.Respond(log, w, d, err)
 }
 

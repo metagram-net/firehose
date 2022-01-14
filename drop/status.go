@@ -11,10 +11,9 @@ import (
 type Status int
 
 const (
-	StatusUnknown Status = iota // unknown
-	StatusUnread                // unread
-	StatusRead                  // read
-	StatusSaved                 // saved
+	StatusUnread Status = iota + 1 // unread
+	StatusRead                     // read
+	StatusSaved                    // saved
 )
 
 // StatusValueStrings returns all valid values of the enum as strings.

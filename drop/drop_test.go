@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metagram-net/firehose/db"
-	"github.com/metagram-net/firehose/db/types"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/internal/apitest"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +30,7 @@ func TestCreate(t *testing.T) {
 	assert.NoError(t, parseUUID(d.ID))
 	assert.Equal(t, "Example Dot Net", d.Title)
 	assert.Equal(t, "https://example.net", d.URL)
-	assert.Equal(t, types.StatusUnread, d.Status)
+	assert.Equal(t, drop.StatusUnread, d.Status)
 	assert.WithinDuration(t, clock.Now(), d.MovedAt, 0)
 	assert.Empty(t, d.Tags)
 }

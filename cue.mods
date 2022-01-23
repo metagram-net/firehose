@@ -1,0 +1,3 @@
+module github.com/metagram-net/firehose
+
+cue v0.4.0

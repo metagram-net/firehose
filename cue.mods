@@ -1,3 +1,5 @@
 module github.com/metagram-net/firehose
 
 cue v0.4.0
+
+require github.com/hofstadter-io/hof v0.6.1

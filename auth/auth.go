@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth/apikey"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/db"
@@ -35,4 +36,11 @@ func RegisterUser(ctx context.Context, tx db.DBTX, email string) (*Registration,
 		ApiKey:    *key,
 		Plaintext: *plain,
 	}, nil
+}
+
+type Handler struct{}
+
+//nolint:unparam // The always-nil error is intentional.
+func (Handler) Whoami(_ api.Context, u api.User) (user.User, error) {
+	return user.User{ID: u.ID.String()}, nil
 }

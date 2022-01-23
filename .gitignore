@@ -1,3 +1,4 @@
 /.env
-/tmp
+/.hof
 /firehose.toml
+/tmp

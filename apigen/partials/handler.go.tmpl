@@ -1,0 +1,43 @@
+{{ $route := . }}
+r.Methods(http.Method{{ $route.Method | camelT }}).Path("{{ $route.Path }}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ctx, err := srv.Context(r)
+	if err != nil {
+		srv.Respond(w, nil, err)
+		return
+	}
+
+	{{ if $route.Authenticated -}}
+	user, err := srv.Authenticate(ctx, r)
+	if err != nil {
+		srv.Respond(w, nil, err)
+		return
+	}
+	{{- end }}
+
+	{{ with $route.Params -}}
+	var params {{.}}
+	if err := api.FromVars(mux.Vars(r), &params); err != nil {
+		srv.Respond(w, nil, err)
+		return
+	}
+	{{- end }}
+
+	{{ with $route.Body -}}
+	var body {{.}}
+	if err := api.FromBody(r.Body, &body); err != nil {
+		srv.Respond(w, nil, err)
+		return
+	}
+	{{- end }}
+
+	res, err := h.{{ $route.Group }}.{{ $route.Name }}(ctx
+	{{- if $route.Authenticated}}, *user{{end -}}
+	{{- if $route.Params}}, params{{end -}}
+	{{- if $route.Body}}, body{{end -}}
+	)
+	if err != nil {
+		srv.Respond(w, nil, err)
+		return
+	}
+	srv.Respond(w, res, ctx.Close())
+})

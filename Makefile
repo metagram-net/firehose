@@ -13,6 +13,13 @@ help: ## List targets in this Makefile
 gen: ## Write generated code to files
 	go generate ./...
 	sqlc generate
+	hof gen
+	@# Format hof-generated code
+	goimports -w -local 'github.com/metagram-net/firehose' **/*.apigen.go
+
+.PHONY: fmt
+fmt: ## Format code
+	goimports -w -local 'github.com/metagram-net/firehose' .
 
 .PHONY: run
 run: ## Run the server

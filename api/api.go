@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -23,10 +26,15 @@ type User struct {
 }
 
 type Context struct {
-	Ctx   context.Context
+	context.Context
+
 	Log   *zap.Logger
-	Tx    db.Queryable
+	Tx    *sql.Tx
 	Clock clock.Clock
+}
+
+func (c *Context) Close() error {
+	return c.Tx.Commit()
 }
 
 type HandlerFunc func(Context, User, http.ResponseWriter, *http.Request)
@@ -63,13 +71,40 @@ func (s *Server) Authed(next HandlerFunc) http.HandlerFunc {
 		}
 
 		a := Context{
-			Ctx:   ctx,
-			Log:   s.log,
-			Tx:    db.New(tx),
-			Clock: clock.Freeze(time.Now()),
+			Context: ctx,
+			Log:     s.log,
+			Tx:      tx,
+			Clock:   clock.Freeze(time.Now()),
 		}
 		next(a, *u, w, r)
 	}
+}
+
+func (s *Server) Context(r *http.Request) (Context, error) {
+	var zero Context
+
+	ctx := r.Context()
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return zero, err
+	}
+
+	return Context{
+		Context: ctx,
+		Log:     s.log,
+		Tx:      tx,
+		Clock:   clock.Freeze(time.Now()),
+	}, nil
+}
+
+func (s *Server) Authenticate(ctx Context, r *http.Request) (*User, error) {
+	q := db.New(ctx.Tx)
+	return authenticate(ctx, s.log, q, r)
+}
+
+func (s *Server) Respond(w http.ResponseWriter, v interface{}, err error) {
+	Respond(s.log, w, v, err)
 }
 
 // TODO: Replace API key "passwords" with PK registration and request signing.
@@ -139,6 +174,8 @@ func writeResult(w http.ResponseWriter, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
+// TODO: Deprecate top-level Respond in favor of Server.Respond
+
 func Respond(log *zap.Logger, w http.ResponseWriter, v interface{}, err error) {
 	var werr error
 	if err == nil {
@@ -167,10 +204,93 @@ func Parse(r *http.Request, v interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	if vv, ok := v.(Validator); ok {
 		return vv.Validate()
 	}
-	// If it a request type doesn't define a validation function, being valid
-	// JSON is enough.
+	return nil
+}
+
+type Param interface {
+	FromParam(string) error
+}
+
+// Parse unpacks URL parameters into v. For types that implement Validator,
+// this returns v.Validate() after unpacking.
+//
+// This is intended to be called with the result of mux.Vars.
+//
+// Unpacking is done with json.Marshal, with some overrides for specific types:
+//
+// - If a type implements Param, its FromParam method will be used.
+// - For string and []byte, the value will be returned as-is.
+// - Complex numbers will use strconv.ParseComplex with the correct bit size.
+//
+func FromVars(vars map[string]string, v interface{}) error {
+	// v must be a pointer type for this to be able to set values.
+	vv := reflect.ValueOf(v).Elem()
+	t := vv.Type()
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+
+		key := f.Tag.Get("var")
+		if key == "" {
+			continue
+		}
+
+		dest := vv.FieldByIndex(f.Index).Addr().Interface()
+		err := fromVar(vars[key], dest)
+		if err != nil {
+			return fmt.Errorf("decode param: %w", err)
+		}
+	}
+
+	if vv, ok := v.(Validator); ok {
+		return vv.Validate()
+	}
+	return nil
+}
+
+var ErrFromVar = errors.New("fromVar: unhandled type")
+
+func fromVar(val string, dest interface{}) error {
+	var err error
+	switch dest := dest.(type) {
+	// If the type implements its own decoding, use that.
+	case Param:
+		err = dest.FromParam(val)
+
+	// There's no need to decode these cases. They'd fail in JSON anyway
+	// because these values aren't quoted.
+	case *string:
+		*dest = val
+	case *[]byte:
+		*dest = []byte(val)
+
+	// Complex numbers aren't supported by JSON.
+	case *complex64:
+		f, err := strconv.ParseComplex(val, 64)
+		*dest = complex64(f)
+		return err
+	case *complex128:
+		*dest, err = strconv.ParseComplex(val, 128)
+
+	default:
+		err = json.Unmarshal([]byte(val), dest)
+	}
+	return err
+}
+
+// FromBody reads the request body and unmarshals the JSON into v. For types
+// that implement Validator, this returns v.Validate() after unmarshaling.
+func FromBody(body io.Reader, v interface{}) error {
+	err := json.NewDecoder(body).Decode(v)
+	if err != nil {
+		return err
+	}
+
+	if vv, ok := v.(Validator); ok {
+		return vv.Validate()
+	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strconv"
 	"time"
@@ -293,4 +294,28 @@ func FromBody(body io.Reader, v interface{}) error {
 		return vv.Validate()
 	}
 	return nil
+}
+
+// Pairs flattens a route params struct into a slice of key-value pairs
+// suitable for use in calls to mux.Route.URL().
+func Pairs(params interface{}) []string {
+	var pairs []string
+
+	v := reflect.Indirect(reflect.ValueOf(params))
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+
+		key := f.Tag.Get("var")
+		if key == "" {
+			continue
+		}
+
+		i := v.FieldByIndex(f.Index).Interface()
+		val := fmt.Sprintf("%s", i)
+		pairs = append(pairs, key, url.PathEscape(val))
+	}
+
+	return pairs
 }

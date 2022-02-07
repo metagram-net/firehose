@@ -55,3 +55,14 @@ func (s Status) Model() db.DropStatus {
 		panic(fmt.Sprintf("unrecognized status: %s", s))
 	}
 }
+
+// Implement pflag.Value
+
+func (s *Status) Set(str string) (err error) {
+	*s, err = StatusString(str)
+	return err
+}
+
+func (s *Status) Type() string {
+	return "dropStatus"
+}

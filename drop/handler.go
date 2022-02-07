@@ -4,6 +4,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
+	"github.com/metagram-net/firehose/null"
 )
 
 type ID uuid.UUID
@@ -35,8 +36,8 @@ func (Handler) Get(ctx api.Context, u api.User, params GetParams) (Drop, error) 
 }
 
 type ListBody struct {
-	Status Status `json:"status"`
-	Limit  *int32 `json:"limit"`
+	Status Status `json:"status,omitempty"`
+	Limit  int32  `json:"limit,omitempty"`
 	// TODO(tags): Implement tags
 	// Tags   []uuid.UUID `json:"tags"`
 }
@@ -52,8 +53,8 @@ func (Handler) List(ctx api.Context, u api.User, body ListBody) (ListResponse, e
 	// "scroll past" a few drops. But the point is to avoid scrolling for a
 	// long time to find something, so don't allow large limits here.
 	limit := int32(20)
-	if body.Limit != nil && *body.Limit < limit {
-		limit = *body.Limit
+	if 0 < body.Limit && body.Limit < limit {
+		limit = body.Limit
 	}
 	q := db.New(ctx.Tx)
 	ds, err := List(ctx, q, u, body.Status, limit)
@@ -61,9 +62,9 @@ func (Handler) List(ctx api.Context, u api.User, body ListBody) (ListResponse, e
 }
 
 type CreateBody struct {
-	Title  string      `json:"title"`
-	URL    string      `json:"url"`
-	TagIDs []uuid.UUID `json:"tag_ids"`
+	Title  string      `json:"title,omitempty"`
+	URL    string      `json:"url,omitempty"`
+	TagIDs []uuid.UUID `json:"tag_ids,omitempty"`
 }
 
 func (Handler) Create(ctx api.Context, u api.User, body CreateBody) (Drop, error) {
@@ -73,13 +74,14 @@ func (Handler) Create(ctx api.Context, u api.User, body CreateBody) (Drop, error
 }
 
 type UpdateBody struct {
-	ID    uuid.UUID `json:"id"`
-	Title *string   `json:"title"`
-	URL   string    `json:"url"`
+	ID    uuid.UUID   `json:"id,omitempty"`
+	Title null.String `json:"title,omitempty"`
+	URL   null.String `json:"url,omitempty"`
 }
 
 func (Handler) Update(ctx api.Context, u api.User, body UpdateBody) (Drop, error) {
 	q := db.New(ctx.Tx)
+	// TODO: wtf is even going on here?
 	return Update(ctx, q, u, body.ID, UpdateRequest{
 		Title: body.Title,
 		URL:   body.URL,
@@ -87,8 +89,8 @@ func (Handler) Update(ctx api.Context, u api.User, body UpdateBody) (Drop, error
 }
 
 type MoveBody struct {
-	ID     uuid.UUID `json:"id"`
-	Status Status    `json:"status"`
+	ID     uuid.UUID `json:"id,omitempty"`
+	Status Status    `json:"status,omitempty"`
 }
 
 func (Handler) Move(ctx api.Context, u api.User, body MoveBody) (Drop, error) {
@@ -98,7 +100,7 @@ func (Handler) Move(ctx api.Context, u api.User, body MoveBody) (Drop, error) {
 }
 
 type DeleteBody struct {
-	ID uuid.UUID `json:"id"`
+	ID uuid.UUID `json:"id,omitempty"`
 }
 
 func (Handler) Delete(ctx api.Context, u api.User, body DeleteBody) (Drop, error) {

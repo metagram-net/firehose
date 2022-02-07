@@ -7,6 +7,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
+	"github.com/metagram-net/firehose/null"
 )
 
 type Drop struct {
@@ -73,16 +74,17 @@ func Create(ctx context.Context, q db.Queryable, user api.User, title string, ur
 }
 
 type UpdateRequest struct {
-	Title *string
-	URL   string
+	Title null.String
+	URL   null.String
 }
 
 func Update(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, req UpdateRequest) (Drop, error) {
+	// TODO: How do updates work with sqlc?
 	d, err := q.DropUpdate(ctx, db.DropUpdateParams{
 		UserID: user.ID,
 		ID:     id,
-		Title:  db.NullString(req.Title),
-		URL:    req.URL,
+		Title:  req.Title.SQL(),
+		URL:    req.URL.SQL(),
 	})
 	// TODO(tags): Update drop_tags
 	if err != nil {

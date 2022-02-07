@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/metagram-net/firehose/drop"
+	"github.com/metagram-net/firehose/moray"
 	"github.com/spf13/cobra"
 )
 
@@ -28,10 +29,7 @@ func dropCmd() *cobra.Command {
 }
 
 func dropNewCmd() *cobra.Command {
-	var request struct {
-		Title string `json:"title"`
-		URL   string `json:"url"`
-	}
+	var body drop.CreateBody
 
 	cmd := &cobra.Command{
 		Use:          "new",
@@ -46,26 +44,23 @@ func dropNewCmd() *cobra.Command {
 				return err
 			}
 
-			d, err := c.Drops.Create(ctx, request.Title, request.URL)
+			d, err := c.Drops.Create(ctx, body)
 			if err != nil {
 				return err
 			}
+			// TODO: table encoder
 			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&request.Title, "title", "", "Set the title")
-	flags.StringVar(&request.URL, "url", "", "Set the URL")
+	flags.StringVar(&body.Title, "title", "", "Set the title")
+	flags.StringVar(&body.URL, "url", "", "Set the URL")
 	cmd.MarkFlagRequired("url")
 	return cmd
 }
 
 func dropEditCmd() *cobra.Command {
-	var request struct {
-		ID    string `json:"id,omitempty"`
-		Title string `json:"title,omitempty"`
-		URL   string `json:"url,omitempty"`
-	}
+	var body drop.UpdateBody
 
 	cmd := &cobra.Command{
 		Use:          "edit",
@@ -80,34 +75,24 @@ func dropEditCmd() *cobra.Command {
 				return err
 			}
 
-			var reqBody bytes.Buffer
-			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
-				return err
-			}
-
-			res, err := c.Post(ctx, "drops/update", &reqBody)
+			d, err := c.Drops.Update(ctx, body)
 			if err != nil {
 				return err
 			}
-			defer res.Body.Close()
 
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
+			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&request.ID, "id", "", "The drop ID")
+	flags.Var((*moray.UUID)(&body.ID), "id", "The drop ID")
 	cmd.MarkFlagRequired("id")
-	flags.StringVar(&request.Title, "title", "", "Set the title")
-	flags.StringVar(&request.URL, "url", "", "Set the URL")
+	flags.Var(&body.Title, "title", "Set the title")
+	flags.Var(&body.URL, "url", "Set the URL")
 	return cmd
 }
 
 func dropMoveCmd() *cobra.Command {
-	var request struct {
-		ID     string `json:"id,omitempty"`
-		Status string `json:"status,omitempty"`
-	}
+	var body drop.MoveBody
 
 	cmd := &cobra.Command{
 		Use:          "move",
@@ -122,32 +107,24 @@ func dropMoveCmd() *cobra.Command {
 				return err
 			}
 
-			var reqBody bytes.Buffer
-			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
-				return err
-			}
-
-			res, err := c.Post(ctx, "drops/move", &reqBody)
+			d, err := c.Drops.Move(ctx, body)
 			if err != nil {
 				return err
 			}
-			defer res.Body.Close()
 
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
+			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&request.ID, "id", "", "The drop ID")
+	flags.Var((*moray.UUID)(&body.ID), "id", "The drop ID")
 	cmd.MarkFlagRequired("id")
-	flags.StringVar(&request.Status, "status", "", "Set the status")
+	flags.Var(&body.Status, "status", "Set the status")
+	cmd.MarkFlagRequired("status")
 	return cmd
 }
 
 func dropDeleteCmd() *cobra.Command {
-	var request struct {
-		ID string `json:"id,omitempty"`
-	}
+	var body drop.DeleteBody
 
 	cmd := &cobra.Command{
 		Use:          "delete",
@@ -162,23 +139,16 @@ func dropDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			var reqBody bytes.Buffer
-			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
-				return err
-			}
-
-			res, err := c.Post(ctx, "drops/delete", &reqBody)
+			d, err := c.Drops.Delete(ctx, body)
 			if err != nil {
 				return err
 			}
-			defer res.Body.Close()
 
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
+			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&request.ID, "id", "", "The drop ID")
+	flags.Var((*moray.UUID)(&body.ID), "id", "The drop ID")
 	cmd.MarkFlagRequired("id")
 	return cmd
 }
@@ -243,11 +213,7 @@ func dropNextCmd() *cobra.Command {
 }
 
 func dropListCmd() *cobra.Command {
-	var request struct {
-		// TODO: Status enum as a CLI arg?
-		Status string `json:"status"`
-		Limit  int    `json:"limit"`
-	}
+	var body drop.ListBody
 
 	cmd := &cobra.Command{
 		Use:          "list",
@@ -262,23 +228,17 @@ func dropListCmd() *cobra.Command {
 				return err
 			}
 
-			var reqBody bytes.Buffer
-			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
-				return err
-			}
-
-			res, err := c.Post(ctx, "drops/list", &reqBody)
+			res, err := c.Drops.List(ctx, body)
 			if err != nil {
 				return err
 			}
-			defer res.Body.Close()
 
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
+			return json.NewEncoder(os.Stdout).Encode(res)
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&request.Status, "status", "unread", "The drop status")
-	flags.IntVar(&request.Limit, "limit", 5, "The number of drops to list")
+	body.Status = drop.StatusUnread
+	flags.Var(&body.Status, "status", "The drop status")
+	flags.Int32Var(&body.Limit, "limit", 5, "The number of drops to list")
 	return cmd
 }

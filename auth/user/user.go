@@ -8,7 +8,7 @@ import (
 )
 
 type User struct {
-	ID string
+	ID string `json:"id"`
 }
 
 func Create(ctx context.Context, q db.Querier, email string) (*db.User, error) {

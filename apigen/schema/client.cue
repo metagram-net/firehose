@@ -1,6 +1,6 @@
 package schema
 
-#Server: {
+#Client: {
 	GoModule:  string
 	GoPackage: string
 

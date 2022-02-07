@@ -66,8 +66,10 @@ func rootCmd() *cobra.Command {
 
 func Client() (*client.Client, error) {
 	return client.New(
-		viper.GetString("url-base"),
-		viper.GetString("user-id"),
-		viper.GetString("api-key"),
+		client.WithBaseURL(viper.GetString("url-base")),
+		client.WithAuth(
+			viper.GetString("user-id"),
+			viper.GetString("api-key"),
+		),
 	)
 }

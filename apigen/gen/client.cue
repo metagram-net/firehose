@@ -8,22 +8,22 @@ import (
 	"github.com/metagram-net/firehose/apigen/schema"
 )
 
-#Server: gen.#HofGenerator & {
-	Schema: schema.#Server
+#Client: gen.#HofGenerator & {
+	Schema: schema.#Client
 
 	// Outdir is the base directory for all generated files.
 	Outdir: string
 
 	// In is generator context passed to every template.
 	In: {
-		Server: Schema
+		Client: Schema
 	}
 
 	// Out describes the output files to generate.
 	Out: [...gen.#HofGeneratorFile] & [
 		{
-			TemplatePath: "server/routes.go.tmpl"
-			Filepath:     "\(Outdir)/server/routes.apigen.go"
+			TemplatePath: "client/endpoints.go.tmpl"
+			Filepath:     "\(Outdir)/client/endpoints.apigen.go"
 		},
 	]
 

@@ -69,7 +69,7 @@ func (g {{ $group.Name }}) {{ $route.Name }}(ctx context.Context
         return val, err
     }
 
-    return val, json.NewDecoder(res.Body).Decode(&val)
+    return val, parse(res, &val)
 }
 {{ end -}}
 {{ end -}}

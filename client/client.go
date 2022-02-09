@@ -2,11 +2,14 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/metagram-net/firehose/api"
 )
 
 type Client struct {
@@ -66,7 +69,21 @@ func WithHTTPClient(client *http.Client) Option {
 	}
 }
 
-// TODO: Turn error statuses into error values
+// parse unmarshals the response body into v. If the response is an HTTP error,
+// parse instead tries to unmarshal the body into an api.Error and return it.
+// In either case, if unmarshaling fails, this returns the JSON error.
+func parse(r *http.Response, v interface{}) error {
+	if r.StatusCode >= 400 {
+		var e api.Error
+		err := json.NewDecoder(r.Body).Decode(&e)
+		if err != nil {
+			return fmt.Errorf("parse error response: %w", err)
+		}
+		return e
+	}
+
+	return json.NewDecoder(r.Body).Decode(&v)
+}
 
 func (c Client) Get(ctx context.Context, path string) (*http.Response, error) {
 	url, err := c.baseURL.Parse(path)

@@ -26,7 +26,7 @@ func main() {
 
 	err := rootCmd().ExecuteContext(ctx)
 	if err != nil {
-		log.Fatal(err.Error())
+		os.Exit(1)
 	}
 }
 

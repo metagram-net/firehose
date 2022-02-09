@@ -49,7 +49,7 @@ func (g WellKnown) HealthCheck(ctx context.Context) (wellknown.HealthCheckRespon
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 type Auth struct {
@@ -66,7 +66,7 @@ func (g Auth) Whoami(ctx context.Context) (auth.User, error) {
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 type Drops struct {
@@ -83,7 +83,7 @@ func (g Drops) Next(ctx context.Context) (drop.Drop, error) {
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 func (g Drops) Get(ctx context.Context, params drop.GetParams) (drop.Drop, error) {
@@ -100,7 +100,7 @@ func (g Drops) Get(ctx context.Context, params drop.GetParams) (drop.Drop, error
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 func (g Drops) List(ctx context.Context, body drop.ListBody) (drop.ListResponse, error) {
@@ -117,7 +117,7 @@ func (g Drops) List(ctx context.Context, body drop.ListBody) (drop.ListResponse,
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 func (g Drops) Create(ctx context.Context, body drop.CreateBody) (drop.Drop, error) {
@@ -134,7 +134,7 @@ func (g Drops) Create(ctx context.Context, body drop.CreateBody) (drop.Drop, err
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 func (g Drops) Update(ctx context.Context, body drop.UpdateBody) (drop.Drop, error) {
@@ -151,7 +151,7 @@ func (g Drops) Update(ctx context.Context, body drop.UpdateBody) (drop.Drop, err
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 func (g Drops) Move(ctx context.Context, body drop.MoveBody) (drop.Drop, error) {
@@ -168,7 +168,7 @@ func (g Drops) Move(ctx context.Context, body drop.MoveBody) (drop.Drop, error) 
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }
 
 func (g Drops) Delete(ctx context.Context, body drop.DeleteBody) (drop.Drop, error) {
@@ -185,5 +185,5 @@ func (g Drops) Delete(ctx context.Context, body drop.DeleteBody) (drop.Drop, err
 		return val, err
 	}
 
-	return val, json.NewDecoder(res.Body).Decode(&val)
+	return val, parse(res, &val)
 }

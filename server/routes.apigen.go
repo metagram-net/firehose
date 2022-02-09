@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/metagram-net/firehose/api"
-	"github.com/metagram-net/firehose/auth/user"
+	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
 )
@@ -23,7 +23,7 @@ type WellKnown interface {
 }
 
 type Auth interface {
-	Whoami(ctx api.Context, user api.User) (user.User, error)
+	Whoami(ctx api.Context, user api.User) (auth.User, error)
 }
 
 type Drops interface {

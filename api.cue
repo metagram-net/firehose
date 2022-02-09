@@ -50,7 +50,7 @@ _group: "Auth": [
 	#GET & {
 		Name:   "Whoami"
 		Path:   "/auth/whoami"
-		Return: "user.User"
+		Return: "auth.User"
 	},
 ]
 

@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/metagram-net/firehose/api"
-	"github.com/metagram-net/firehose/auth/user"
+	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
 )
@@ -56,8 +56,8 @@ type Auth struct {
 	f Fetcher
 }
 
-func (g Auth) Whoami(ctx context.Context) (user.User, error) {
-	var val user.User
+func (g Auth) Whoami(ctx context.Context) (auth.User, error) {
+	var val auth.User
 
 	path := "/auth/whoami"
 

@@ -38,9 +38,13 @@ func RegisterUser(ctx context.Context, tx db.DBTX, email string) (*Registration,
 	}, nil
 }
 
+type User struct {
+	ID string `json:"id"`
+}
+
 type Handler struct{}
 
 //nolint:unparam // The always-nil error is intentional.
-func (Handler) Whoami(_ api.Context, u api.User) (user.User, error) {
-	return user.User{ID: u.ID.String()}, nil
+func (Handler) Whoami(_ api.Context, u api.User) (User, error) {
+	return User{ID: u.ID.String()}, nil
 }

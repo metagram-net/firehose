@@ -7,10 +7,6 @@ import (
 	"github.com/metagram-net/firehose/db"
 )
 
-type User struct {
-	ID string `json:"id"`
-}
-
 func Create(ctx context.Context, q db.Querier, email string) (*db.User, error) {
 	u, err := q.UserCreate(ctx, email)
 	if err != nil {

@@ -9,9 +9,9 @@ type httpStatus = int
 type ErrorCode string
 
 type Error struct {
-	Status  httpStatus
-	Code    ErrorCode
-	Message string
+	Status  httpStatus `json:"status"`
+	Code    ErrorCode  `json:"code"`
+	Message string     `json:"message"`
 }
 
 func (e Error) Error() string {
@@ -27,7 +27,7 @@ var (
 	ErrNotFound = Error{
 		Status:  http.StatusNotFound,
 		Code:    "not_found",
-		Message: "The requested route or resource does not exist.",
+		Message: "The requested route does not exist.",
 	}
 	ErrMethodNotAllowed = Error{
 		Status: http.StatusMethodNotAllowed,

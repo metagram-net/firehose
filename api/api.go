@@ -129,10 +129,7 @@ func writeError(log *zap.Logger, w http.ResponseWriter, err error) error {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(e.Status)
-	return json.NewEncoder(w).Encode(map[string]string{
-		"error_code":    string(e.Code),
-		"error_message": e.Message,
-	})
+	return json.NewEncoder(w).Encode(e)
 }
 
 func writeResult(w http.ResponseWriter, v interface{}) error {

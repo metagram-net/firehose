@@ -2,6 +2,8 @@ package drop
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -88,6 +90,9 @@ func Update(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, f 
 		},
 		Set: db.DropUpdateSet(f),
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return Drop{}, api.NoResourceError("drop", id.String())
+	}
 	if err != nil {
 		return Drop{}, err
 	}

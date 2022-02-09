@@ -54,3 +54,11 @@ func ValidationError(field string, value interface{}, message string) Error {
 		Message: fmt.Sprintf(`field "%s" (value "%s"): %s`, field, value, message),
 	}
 }
+
+func NoResourceError(resource, id string) Error {
+	return Error{
+		Status:  http.StatusNotFound,
+		Code:    "no_resource",
+		Message: fmt.Sprintf(`No %s found with id "%s".`, resource, id),
+	}
+}

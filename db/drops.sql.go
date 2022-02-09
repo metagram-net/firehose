@@ -201,38 +201,3 @@ func (q *Queries) DropNext(ctx context.Context, userID uuid.UUID) (Drop, error) 
 	)
 	return i, err
 }
-
-const dropUpdate = `-- name: DropUpdate :one
-update drops
-set title = $3, url = $4
-where user_id = $1 and id = $2
-returning id, user_id, title, url, status, moved_at, created_at, updated_at
-`
-
-type DropUpdateParams struct {
-	UserID uuid.UUID
-	ID     uuid.UUID
-	Title  sql.NullString
-	URL    string
-}
-
-func (q *Queries) DropUpdate(ctx context.Context, arg DropUpdateParams) (Drop, error) {
-	row := q.db.QueryRowContext(ctx, dropUpdate,
-		arg.UserID,
-		arg.ID,
-		arg.Title,
-		arg.URL,
-	)
-	var i Drop
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Title,
-		&i.URL,
-		&i.Status,
-		&i.MovedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}

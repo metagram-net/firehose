@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
 	"github.com/metagram-net/firehose/null"
@@ -73,20 +74,20 @@ func Create(ctx context.Context, q db.Queryable, user api.User, title string, ur
 	return model(d, ts), err
 }
 
-type UpdateRequest struct {
-	Title null.String
-	URL   null.String
+type UpdateFields struct {
+	Title null.String `db:"title"`
+	URL   null.String `db:"url"`
 }
 
-func Update(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, req UpdateRequest) (Drop, error) {
-	// TODO: How do updates work with sqlc?
-	d, err := q.DropUpdate(ctx, db.DropUpdateParams{
-		UserID: user.ID,
-		ID:     id,
-		Title:  req.Title.SQL(),
-		URL:    req.URL.SQL(),
-	})
+func Update(ctx context.Context, q db.Queryable, user api.User, id uuid.UUID, f UpdateFields) (Drop, error) {
 	// TODO(tags): Update drop_tags
+	d, err := db.DropUpdate(ctx, q, db.DropUpdateFields{
+		Select: db.DropUpdateSelect{
+			ID:     id,
+			UserID: user.ID,
+		},
+		Set: db.DropUpdateSet(f),
+	})
 	if err != nil {
 		return Drop{}, err
 	}

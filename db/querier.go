@@ -18,7 +18,6 @@ type Querier interface {
 	DropMove(ctx context.Context, arg DropMoveParams) (Drop, error)
 	DropNext(ctx context.Context, userID uuid.UUID) (Drop, error)
 	DropTagApply(ctx context.Context, arg DropTagApplyParams) (DropTag, error)
-	DropUpdate(ctx context.Context, arg DropUpdateParams) (Drop, error)
 	TagCreate(ctx context.Context, arg TagCreateParams) (Tag, error)
 	TagDelete(ctx context.Context, arg TagDeleteParams) (Tag, error)
 	TagFind(ctx context.Context, arg TagFindParams) (Tag, error)

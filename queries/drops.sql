@@ -19,12 +19,6 @@ insert into drops
 values ($1, $2, $3, $4, $5)
 returning *;
 
--- name: DropUpdate :one
-update drops
-set title = $3, url = $4
-where user_id = $1 and id = $2
-returning *;
-
 -- name: DropMove :one
 update drops
 set status = $3, moved_at = $4
@@ -33,3 +27,5 @@ returning *;
 
 -- name: DropDelete :one
 delete from drops where user_id = $1 and id = $2 returning *;
+
+-- custom: DropUpdate

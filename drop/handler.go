@@ -81,8 +81,7 @@ type UpdateBody struct {
 
 func (Handler) Update(ctx api.Context, u api.User, body UpdateBody) (Drop, error) {
 	q := db.New(ctx.Tx)
-	// TODO: wtf is even going on here?
-	return Update(ctx, q, u, body.ID, UpdateRequest{
+	return Update(ctx, q, u, body.ID, UpdateFields{
 		Title: body.Title,
 		URL:   body.URL,
 	})

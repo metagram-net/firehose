@@ -38,8 +38,6 @@ func (c *Context) Close() error {
 	return c.Tx.Commit()
 }
 
-type HandlerFunc func(Context, User, http.ResponseWriter, *http.Request)
-
 type Server struct {
 	log *zap.Logger
 	db  *sql.DB
@@ -47,38 +45,6 @@ type Server struct {
 
 func NewServer(log *zap.Logger, db *sql.DB) *Server {
 	return &Server{log, db}
-}
-
-func (s *Server) Authed(next HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		tx, err := s.db.BeginTx(ctx, nil)
-		if err != nil {
-			Respond(s.log, w, nil, err)
-			return
-		}
-		defer func() {
-			if err := tx.Commit(); err != nil {
-				s.log.Error("Could not commit transaction", zap.Error(err))
-			}
-		}()
-
-		q := db.New(tx)
-		u, err := authenticate(ctx, s.log, q, r)
-		if err != nil {
-			Respond(s.log, w, nil, err)
-			return
-		}
-
-		a := Context{
-			Context: ctx,
-			Log:     s.log,
-			Tx:      tx,
-			Clock:   clock.Freeze(time.Now()),
-		}
-		next(a, *u, w, r)
-	}
 }
 
 func (s *Server) Context(r *http.Request) (Context, error) {
@@ -102,10 +68,6 @@ func (s *Server) Context(r *http.Request) (Context, error) {
 func (s *Server) Authenticate(ctx Context, r *http.Request) (*User, error) {
 	q := db.New(ctx.Tx)
 	return authenticate(ctx, s.log, q, r)
-}
-
-func (s *Server) Respond(w http.ResponseWriter, v interface{}, err error) {
-	Respond(s.log, w, v, err)
 }
 
 // TODO: Replace API key "passwords" with PK registration and request signing.
@@ -146,15 +108,18 @@ func authenticate(ctx context.Context, log *zap.Logger, q db.Querier, req *http.
 	return &User{ID: u.ID}, nil
 }
 
-func NewLogMiddleware(log *zap.Logger) mux.MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Info("Incoming request", zap.String("method", r.Method), zap.String("uri", r.RequestURI))
-			next.ServeHTTP(w, r)
-		})
+func (s *Server) Respond(w http.ResponseWriter, v interface{}, err error) {
+	var werr error
+	if err == nil {
+		werr = writeResult(w, v)
+	} else {
+		werr = writeError(s.log, w, err)
+	}
+	if werr != nil {
+		s.log.Error("Could not write response, giving up", zap.Error(werr))
+		panic(werr)
 	}
 }
-
 func writeError(log *zap.Logger, w http.ResponseWriter, err error) error {
 	var e Error
 	if !errors.As(err, &e) {
@@ -162,8 +127,8 @@ func writeError(log *zap.Logger, w http.ResponseWriter, err error) error {
 		e = ErrUnhandled
 	}
 
-	w.WriteHeader(e.Status)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(e.Status)
 	return json.NewEncoder(w).Encode(map[string]string{
 		"error_code":    string(e.Code),
 		"error_message": e.Message,
@@ -175,41 +140,17 @@ func writeResult(w http.ResponseWriter, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-// TODO: Deprecate top-level Respond in favor of Server.Respond
-
-func Respond(log *zap.Logger, w http.ResponseWriter, v interface{}, err error) {
-	var werr error
-	if err == nil {
-		werr = writeResult(w, v)
-	} else {
-		werr = writeError(log, w, err)
-	}
-	if werr != nil {
-		log.Error("Could not write response, giving up", zap.Error(werr))
-		panic(werr)
+func NewLogMiddleware(log *zap.Logger) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Info("Incoming request", zap.String("method", r.Method), zap.String("uri", r.RequestURI))
+			next.ServeHTTP(w, r)
+		})
 	}
 }
 
 type Validator interface {
 	Validate() error
-}
-
-// Parse reads the request body and unmarshals the JSON into v. For types that
-// implement Validator, this returns v.Validate() after unmarshaling.
-func Parse(r *http.Request, v interface{}) error {
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(b, v)
-	if err != nil {
-		return err
-	}
-
-	if vv, ok := v.(Validator); ok {
-		return vv.Validate()
-	}
-	return nil
 }
 
 type Param interface {

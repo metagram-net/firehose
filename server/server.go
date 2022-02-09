@@ -24,20 +24,20 @@ func New(log *zap.Logger, db *sql.DB) *mux.Router {
 
 	router.Use(api.NewLogMiddleware(log))
 
-	router.NotFoundHandler = notFound(log)
-	router.MethodNotAllowedHandler = methodNotAllowed(log)
+	router.NotFoundHandler = notFound(srv)
+	router.MethodNotAllowedHandler = methodNotAllowed(srv)
 
 	return router
 }
 
-func notFound(log *zap.Logger) http.HandlerFunc {
+func notFound(srv *api.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		api.Respond(log, w, nil, api.ErrNotFound)
+		srv.Respond(w, nil, api.ErrNotFound)
 	}
 }
 
-func methodNotAllowed(log *zap.Logger) http.HandlerFunc {
+func methodNotAllowed(srv *api.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		api.Respond(log, w, nil, api.ErrMethodNotAllowed)
+		srv.Respond(w, nil, api.ErrMethodNotAllowed)
 	}
 }

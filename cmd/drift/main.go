@@ -15,7 +15,6 @@ func main() {
 	initViper()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
 	go func() {
 		<-ctx.Done()
 		stop()

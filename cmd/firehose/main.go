@@ -51,60 +51,97 @@ func Main() error {
 		return err
 	}
 
-	log, err := logger(viper.GetBool("development-logger"))
+	app, err := NewApp(Config{
+		DevelopmentLogger: viper.GetBool("development-logger"),
+		DatabaseURL:       viper.GetString("database-url"),
+		Host:              viper.GetString("host"),
+		Port:              viper.GetString("port"),
+	})
 	if err != nil {
 		return err
-	}
-
-	log.Info("Starting database connection pool")
-	db, err := sql.Open("pgx", viper.GetString("database-url"))
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	srv := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", viper.GetString("host"), viper.GetString("port")),
-		Handler: server.New(log, db),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
 	go func() {
 		<-ctx.Done()
 		stop()
-		log.Info("Interrupt received, cleaning up before quitting. Interrupt again to force-quit.")
+		app.log.Info("Interrupt received, cleaning up before quitting. Interrupt again to force-quit.")
 
-		// Let the server take as long as it needs to close any open
-		// connections.
+		// Let the app take as long as it needs to close any open connections.
 		//nolint:contextcheck
-		if err := srv.Shutdown(context.Background()); err != nil {
-			log.Error("Error shutting down", zap.Error(err))
+		if err := app.Shutdown(context.Background()); err != nil {
+			app.log.Error("Error shutting down", zap.Error(err))
 		}
 	}()
 
-	log.Info("Listening", zap.String("address", srv.Addr))
-	if err := srv.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
-		log.Info("Clean shutdown. Bye! 👋")
-	} else if err != nil {
-		log.Fatal("Error during shutdown", zap.Error(err))
+	app.Run()
+	return nil
+}
+
+type Config struct {
+	DevelopmentLogger bool
+	DatabaseURL       string
+	Host              string
+	Port              string
+}
+
+type App struct {
+	log  *zap.Logger
+	db   *sql.DB
+	srv  *http.Server
+	done chan struct{}
+}
+
+func NewApp(cfg Config) (*App, error) {
+	log, err := logger(cfg.DevelopmentLogger)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := log.Sync(); err != nil {
-		var perr *fs.PathError
-		var errno syscall.Errno
-		einval := uintptr(0x16)
-		// Ignore cases where sync was called with an invalid argument. This
-		// can happen when logging to /dev/stderr attached to a terminal.
-		if errors.As(err, &perr) &&
-			perr.Path == "/dev/stderr" &&
-			errors.As(perr.Err, &errno) &&
-			uintptr(errno) == einval {
-			return nil
-		}
-		return err
+	log.Info("Starting database connection pool")
+	db, err := sql.Open("pgx", cfg.DatabaseURL)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+
+	srv := &http.Server{
+		Addr:    fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
+		Handler: server.New(log, db),
+	}
+
+	done := make(chan struct{})
+
+	return &App{log, db, srv, done}, nil
+}
+
+func (a *App) Run() {
+	a.log.Info("Listening", zap.String("address", a.srv.Addr))
+	if err := a.srv.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
+		a.log.Info("Clean shutdown. Bye! 👋")
+	} else if err != nil {
+		a.log.Fatal("Error during shutdown", zap.Error(err))
+	}
+
+	// Block until Shutdown finishes.
+	<-a.done
+}
+
+func (a *App) Shutdown(ctx context.Context) error {
+	// No matter what happens, let Run return.
+	defer close(a.done)
+
+	a.log.Info("Shutting down HTTP server")
+	if err := a.srv.Shutdown(ctx); err != nil {
+		a.log.Error("Error shutting down HTTP server", zap.Error(err))
+	}
+
+	a.log.Info("Closing database connection")
+	if err := a.db.Close(); err != nil {
+		a.log.Error("Error closing database connection", zap.Error(err))
+	}
+
+	a.log.Info("Log closed")
+	return sync(a.log)
 }
 
 func logger(dev bool) (*zap.Logger, error) {
@@ -112,4 +149,21 @@ func logger(dev bool) (*zap.Logger, error) {
 		return zap.NewDevelopment()
 	}
 	return zap.NewProduction()
+}
+
+func sync(log *zap.Logger) error {
+	err := log.Sync()
+
+	var perr *fs.PathError
+	var errno syscall.Errno
+	einval := uintptr(0x16)
+	// Ignore cases where sync was called with an invalid argument. This can
+	// happen when logging to /dev/stderr attached to a terminal.
+	if errors.As(err, &perr) &&
+		perr.Path == "/dev/stderr" &&
+		errors.As(perr.Err, &errno) &&
+		uintptr(errno) == einval {
+		return nil
+	}
+	return err
 }

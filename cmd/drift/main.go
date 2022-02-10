@@ -25,7 +25,6 @@ func main() {
 	io := clio.New()
 	err := rootCmd(io).ExecuteContext(ctx)
 	if err != nil {
-		io.Errorf(err.Error())
 		os.Exit(1)
 	}
 }

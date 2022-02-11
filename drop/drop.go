@@ -146,7 +146,7 @@ func Next(ctx context.Context, q db.Queryable, user api.User) (Drop, error) {
 func List(ctx context.Context, q db.Queryable, user api.User, s Status, limit int32) ([]Drop, error) {
 	ds, err := q.DropList(ctx, db.DropListParams{
 		UserID:   user.ID,
-		Statuses: []string{s.String()},
+		Statuses: []db.DropStatus{s.Model()},
 		Limit:    limit,
 	})
 	if err != nil {

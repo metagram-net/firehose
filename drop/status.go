@@ -11,9 +11,10 @@ import (
 type Status int
 
 const (
-	StatusUnread Status = iota + 1 // unread
-	StatusRead                     // read
-	StatusSaved                    // saved
+	StatusUnknown Status = iota // unknown
+	StatusUnread                // unread
+	StatusRead                  // read
+	StatusSaved                 // saved
 )
 
 // StatusValueStrings returns all valid values of the enum as strings.
@@ -42,6 +43,8 @@ func StatusModel(s db.DropStatus) Status {
 
 func (s Status) Model() db.DropStatus {
 	switch s {
+	case StatusUnknown:
+		panic("zero-valued status")
 	case StatusUnread:
 		return db.DropStatusUnread
 	case StatusRead:
@@ -49,6 +52,6 @@ func (s Status) Model() db.DropStatus {
 	case StatusSaved:
 		return db.DropStatusSaved
 	default:
-		panic(fmt.Sprintf("unknown status: %s", s))
+		panic(fmt.Sprintf("unrecognized status: %s", s))
 	}
 }

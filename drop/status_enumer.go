@@ -8,24 +8,24 @@ import (
 	"fmt"
 )
 
-const _StatusName = "unreadreadsaved"
+const _StatusName = "unknownunreadreadsaved"
 
-var _StatusIndex = [...]uint8{0, 6, 10, 15}
+var _StatusIndex = [...]uint8{0, 7, 13, 17, 22}
 
 func (i Status) String() string {
-	i -= 1
 	if i < 0 || i >= Status(len(_StatusIndex)-1) {
-		return fmt.Sprintf("Status(%d)", i+1)
+		return fmt.Sprintf("Status(%d)", i)
 	}
 	return _StatusName[_StatusIndex[i]:_StatusIndex[i+1]]
 }
 
-var _StatusValues = []Status{1, 2, 3}
+var _StatusValues = []Status{0, 1, 2, 3}
 
 var _StatusNameToValueMap = map[string]Status{
-	_StatusName[0:6]:   1,
-	_StatusName[6:10]:  2,
-	_StatusName[10:15]: 3,
+	_StatusName[0:7]:   0,
+	_StatusName[7:13]:  1,
+	_StatusName[13:17]: 2,
+	_StatusName[17:22]: 3,
 }
 
 // StatusString retrieves an enum value from the enum constants string name.

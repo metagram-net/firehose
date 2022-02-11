@@ -102,7 +102,7 @@ func (q *Queries) DropFind(ctx context.Context, arg DropFindParams) (Drop, error
 
 const dropList = `-- name: DropList :many
 select id, user_id, title, url, status, moved_at, created_at, updated_at from drops
-where user_id = $1 and status = ANY($3::text[])
+where user_id = $1 and status = ANY($3::drop_status[])
 order by moved_at asc
 limit $2
 `
@@ -110,7 +110,7 @@ limit $2
 type DropListParams struct {
 	UserID   uuid.UUID
 	Limit    int32
-	Statuses []string
+	Statuses []DropStatus
 }
 
 func (q *Queries) DropList(ctx context.Context, arg DropListParams) ([]Drop, error) {

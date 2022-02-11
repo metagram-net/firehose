@@ -9,7 +9,7 @@ order by moved_at asc;
 
 -- name: DropList :many
 select * from drops
-where user_id = $1 and status = ANY(@statuses::text[])
+where user_id = $1 and status = ANY(@statuses::drop_status[])
 order by moved_at asc
 limit $2;
 

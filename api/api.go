@@ -160,7 +160,7 @@ type Param interface {
 	FromParam(string) error
 }
 
-// Parse unpacks URL parameters into v. For types that implement Validator,
+// FromVars unpacks URL parameters into v. For types that implement Validator,
 // this returns v.Validate() after unpacking.
 //
 // This is intended to be called with the result of mux.Vars.

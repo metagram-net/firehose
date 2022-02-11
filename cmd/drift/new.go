@@ -4,10 +4,11 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/metagram-net/firehose/clio"
-	"github.com/metagram-net/firehose/drift"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/metagram-net/firehose/clio"
+	"github.com/metagram-net/firehose/drift"
 )
 
 func newCmd(io *clio.IO) *cobra.Command {

@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose/clio"
-	"github.com/metagram-net/firehose/drift"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/metagram-net/firehose/clio"
+	"github.com/metagram-net/firehose/drift"
 )
 
 func migrateCmd(io *clio.IO) *cobra.Command {

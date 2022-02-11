@@ -2,6 +2,7 @@ package drop
 
 import (
 	"github.com/gofrs/uuid"
+
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
 	"github.com/metagram-net/firehose/null"

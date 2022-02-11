@@ -3,9 +3,10 @@ package main
 import (
 	"errors"
 
-	"github.com/metagram-net/firehose/clio"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/metagram-net/firehose/clio"
 )
 
 const defaultMigrationsDir = "migrations"

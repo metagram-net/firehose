@@ -13,9 +13,10 @@ import (
 	"syscall"
 
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose/server"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+
+	"github.com/metagram-net/firehose/server"
 )
 
 func main() {

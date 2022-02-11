@@ -15,11 +15,12 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+
 	"github.com/metagram-net/firehose/auth/apikey"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/clock"
 	"github.com/metagram-net/firehose/db"
-	"go.uber.org/zap"
 )
 
 type User struct {

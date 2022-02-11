@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/gofrs/uuid"
-	"github.com/metagram-net/firehose/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/metagram-net/firehose/api"
 )
 
 type Custom struct {

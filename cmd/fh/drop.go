@@ -6,9 +6,10 @@ import (
 	"io"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/moray"
-	"github.com/spf13/cobra"
 )
 
 func dropCmd() *cobra.Command {

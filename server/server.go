@@ -5,11 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/wellknown"
-	"go.uber.org/zap"
 )
 
 func New(log *zap.Logger, db *sql.DB) *mux.Router {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
+
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/auth/user"
 	"github.com/metagram-net/firehose/clock"

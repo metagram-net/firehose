@@ -17,6 +17,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/blockloop/scan"
 	"github.com/jackc/pgconn"
+
 	"github.com/metagram-net/firehose/db"
 )
 

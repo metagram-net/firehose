@@ -2,10 +2,11 @@ package main
 
 import (
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose/clio"
-	"github.com/metagram-net/firehose/drift"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/metagram-net/firehose/clio"
+	"github.com/metagram-net/firehose/drift"
 )
 
 const renumberLong string = `Renumber migrations to fix filesystem sorting.

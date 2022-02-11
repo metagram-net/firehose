@@ -8,6 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/blockloop/scan"
 	"github.com/gofrs/uuid"
+
 	"github.com/metagram-net/firehose/null"
 )
 

@@ -7,6 +7,7 @@ import (
 	"encoding/base32"
 
 	"github.com/gofrs/uuid"
+
 	"github.com/metagram-net/firehose/db"
 )
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gofrs/uuid"
+
 	"github.com/metagram-net/firehose/db"
 )
 

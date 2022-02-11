@@ -7,8 +7,9 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/metagram-net/firehose/clio"
 	"github.com/spf13/viper"
+
+	"github.com/metagram-net/firehose/clio"
 )
 
 func main() {

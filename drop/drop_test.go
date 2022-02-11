@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/metagram-net/firehose/db"
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/internal/apitest"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCreate(t *testing.T) {

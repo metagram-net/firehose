@@ -7,10 +7,11 @@ import (
 
 	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v4/stdlib" // database/sql driver: pgx
-	"github.com/metagram-net/firehose/auth"
-	"github.com/metagram-net/firehose/auth/apikey"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/metagram-net/firehose/auth"
+	"github.com/metagram-net/firehose/auth/apikey"
 )
 
 func userCmd() *cobra.Command {

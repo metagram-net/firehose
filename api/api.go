@@ -49,18 +49,21 @@ func NewServer(log *zap.Logger, db *sql.DB) *Server {
 }
 
 func (s *Server) Context(r *http.Request) (Context, error) {
-	var zero Context
-
 	ctx := r.Context()
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return zero, err
+		return Context{}, err
+	}
+
+	reqID, err := uuid.NewV4()
+	if err != nil {
+		return Context{}, err
 	}
 
 	return Context{
 		Context: ctx,
-		Log:     s.log,
+		Log:     s.log.With(zap.Stringer("request_id", reqID)),
 		Tx:      tx,
 		Clock:   clock.Freeze(time.Now()),
 	}, nil
@@ -68,12 +71,12 @@ func (s *Server) Context(r *http.Request) (Context, error) {
 
 func (s *Server) Authenticate(ctx Context, r *http.Request) (*User, error) {
 	q := db.New(ctx.Tx)
-	return authenticate(ctx, s.log, q, r)
+	return authenticate(ctx, q, r)
 }
 
-// TODO: Replace API key "passwords" with PK registration and request signing.
+func authenticate(ctx Context, q db.Querier, req *http.Request) (*User, error) {
+	log := ctx.Log
 
-func authenticate(ctx context.Context, log *zap.Logger, q db.Querier, req *http.Request) (*User, error) {
 	// If the header is missing completely, return a more helpful error.
 	if req.Header.Get("Authorization") == "" {
 		return nil, ErrMissingAuthz
@@ -106,6 +109,8 @@ func authenticate(ctx context.Context, log *zap.Logger, q db.Querier, req *http.
 		log.Warn("Could not find user by ID", zap.Error(err))
 		return nil, ErrInvalidAuthz
 	}
+
+	log.Info("Authenticated request", zap.Stringer("user_id", u.ID))
 	return &User{ID: u.ID}, nil
 }
 
@@ -138,7 +143,7 @@ func writeResult(w http.ResponseWriter, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func NewLogMiddleware(log *zap.Logger) mux.MiddlewareFunc {
+func LogRequests(log *zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log.Info("Incoming request", zap.String("method", r.Method), zap.String("uri", r.RequestURI))

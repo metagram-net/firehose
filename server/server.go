@@ -23,7 +23,7 @@ func New(log *zap.Logger, db *sql.DB) *mux.Router {
 
 	router := Register(srv, handler)
 
-	router.Use(api.NewLogMiddleware(log))
+	router.Use(api.LogRequests(log))
 
 	router.NotFoundHandler = notFound(srv)
 	router.MethodNotAllowedHandler = methodNotAllowed(srv)

@@ -61,8 +61,8 @@ func dropNewCmd() *cobra.Command {
 }
 
 func dropEditCmd() *cobra.Command {
-	var id string
 	var request struct {
+		ID    string `json:"id,omitempty"`
 		Title string `json:"title,omitempty"`
 		URL   string `json:"url,omitempty"`
 	}
@@ -85,7 +85,7 @@ func dropEditCmd() *cobra.Command {
 				return err
 			}
 
-			res, err := c.Post(ctx, fmt.Sprintf("drops/update/%s", id), &reqBody)
+			res, err := c.Post(ctx, "drops/update", &reqBody)
 			if err != nil {
 				return err
 			}
@@ -96,7 +96,7 @@ func dropEditCmd() *cobra.Command {
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&id, "id", "", "The drop ID")
+	flags.StringVar(&request.ID, "id", "", "The drop ID")
 	cmd.MarkFlagRequired("id")
 	flags.StringVar(&request.Title, "title", "", "Set the title")
 	flags.StringVar(&request.URL, "url", "", "Set the URL")
@@ -104,8 +104,8 @@ func dropEditCmd() *cobra.Command {
 }
 
 func dropMoveCmd() *cobra.Command {
-	var id string
 	var request struct {
+		ID     string `json:"id,omitempty"`
 		Status string `json:"status,omitempty"`
 	}
 
@@ -127,7 +127,7 @@ func dropMoveCmd() *cobra.Command {
 				return err
 			}
 
-			res, err := c.Post(ctx, fmt.Sprintf("drops/move/%s", id), &reqBody)
+			res, err := c.Post(ctx, "drops/move", &reqBody)
 			if err != nil {
 				return err
 			}
@@ -138,14 +138,16 @@ func dropMoveCmd() *cobra.Command {
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&id, "id", "", "The drop ID")
+	flags.StringVar(&request.ID, "id", "", "The drop ID")
 	cmd.MarkFlagRequired("id")
 	flags.StringVar(&request.Status, "status", "", "Set the status")
 	return cmd
 }
 
 func dropDeleteCmd() *cobra.Command {
-	var id string
+	var request struct {
+		ID string `json:"id,omitempty"`
+	}
 
 	cmd := &cobra.Command{
 		Use:          "delete",
@@ -160,7 +162,12 @@ func dropDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			res, err := c.Post(ctx, fmt.Sprintf("drops/delete/%s", id), nil)
+			var reqBody bytes.Buffer
+			if err := json.NewEncoder(&reqBody).Encode(request); err != nil {
+				return err
+			}
+
+			res, err := c.Post(ctx, "drops/delete", &reqBody)
 			if err != nil {
 				return err
 			}
@@ -171,7 +178,7 @@ func dropDeleteCmd() *cobra.Command {
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&id, "id", "", "The drop ID")
+	flags.StringVar(&request.ID, "id", "", "The drop ID")
 	cmd.MarkFlagRequired("id")
 	return cmd
 }

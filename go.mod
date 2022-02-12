@@ -10,14 +10,14 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/jackc/pgconn v1.10.1
-	github.com/jackc/pgx/v4 v4.14.0
-	github.com/kyleconroy/sqlc v1.11.0
+	github.com/jackc/pgx/v4 v4.14.1
+	github.com/kyleconroy/sqlc v1.12.0
 	github.com/lib/pq v1.10.4
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pascaldekloe/name v1.0.0 // indirect
-	github.com/spf13/cobra v1.2.1
-	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.9.0
+	github.com/spf13/cobra v1.3.0
+	github.com/spf13/viper v1.10.0
 	github.com/stretchr/testify v1.7.0
+	go.opencensus.io v0.23.0
 	go.uber.org/zap v1.19.1
 )

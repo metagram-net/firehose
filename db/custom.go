@@ -8,8 +8,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/blockloop/scan"
 	"github.com/gofrs/uuid"
-
-	"github.com/metagram-net/firehose/null"
 )
 
 var Pq = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -41,9 +39,6 @@ func DropTagsApply(ctx context.Context, tx DBTX, d Drop, ts []Tag) ([]DropTag, e
 	if len(ts) == 0 {
 		return nil, nil
 	}
-
-	// TODO: Would CopyFrom work here?
-	// https://docs.sqlc.dev/en/latest/howto/insert.html#using-copyfrom
 
 	q := Pq.
 		Insert("drop_tags").
@@ -95,8 +90,8 @@ type DropUpdateSelect struct {
 }
 
 type DropUpdateSet struct {
-	Title null.String `db:"title"`
-	URL   null.String `db:"url"`
+	Title *string
+	URL   *string
 }
 
 type dropSelect struct {
@@ -120,11 +115,11 @@ func DropUpdate(ctx context.Context, tx DBTX, f DropUpdateFields) (Drop, error) 
 		Suffix("RETURNING *")
 
 	// TODO: reflection?
-	if title := f.Set.Title; title.Present {
-		qq = qq.Set("title", title.Value)
+	if title := f.Set.Title; title != nil {
+		qq = qq.Set("title", title)
 	}
-	if url := f.Set.URL; url.Present {
-		qq = qq.Set("url", url.Value)
+	if url := f.Set.URL; url != nil {
+		qq = qq.Set("url", url)
 	}
 
 	query, args, err := qq.ToSql()

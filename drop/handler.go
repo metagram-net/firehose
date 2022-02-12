@@ -5,7 +5,6 @@ import (
 
 	"github.com/metagram-net/firehose/api"
 	"github.com/metagram-net/firehose/db"
-	"github.com/metagram-net/firehose/null"
 )
 
 type ID uuid.UUID
@@ -37,10 +36,9 @@ func (Handler) Get(ctx api.Context, u api.User, params GetParams) (Drop, error) 
 }
 
 type ListBody struct {
-	Status Status `json:"status,omitempty"`
-	Limit  int32  `json:"limit,omitempty"`
-	// TODO(tags): Implement tags
-	// Tags   []uuid.UUID `json:"tags"`
+	Status Status      `json:"status,omitempty"`
+	Limit  int32       `json:"limit,omitempty"`
+	Tags   []uuid.UUID `json:"tags"`
 }
 
 type ListResponse struct {
@@ -58,7 +56,16 @@ func (Handler) List(ctx api.Context, u api.User, body ListBody) (ListResponse, e
 		limit = body.Limit
 	}
 	q := db.New(ctx.Tx)
-	ds, err := List(ctx, q, u, body.Status, limit)
+
+	// The query is simpler (and probably faster?) if it doesn't have to join
+	// tables to filter on tags.
+	if body.Tags == nil {
+		ds, err := List(ctx, q, u, body.Status, limit)
+		return ListResponse{Drops: ds}, err
+	}
+
+	// TODO: Should search be its own endpoint?
+	ds, err := Search(ctx, q, u, body)
 	return ListResponse{Drops: ds}, err
 }
 
@@ -75,9 +82,10 @@ func (Handler) Create(ctx api.Context, u api.User, body CreateBody) (Drop, error
 }
 
 type UpdateBody struct {
-	ID    uuid.UUID   `json:"id,omitempty"`
-	Title null.String `json:"title,omitempty"`
-	URL   null.String `json:"url,omitempty"`
+	ID    uuid.UUID    `json:"id,omitempty"`
+	Title *string      `json:"title,omitempty"`
+	URL   *string      `json:"url,omitempty"`
+	Tags  *[]uuid.UUID `json:"tags,omitempty"`
 }
 
 func (Handler) Update(ctx api.Context, u api.User, body UpdateBody) (Drop, error) {
@@ -85,6 +93,7 @@ func (Handler) Update(ctx api.Context, u api.User, body UpdateBody) (Drop, error
 	return Update(ctx, q, u, body.ID, UpdateFields{
 		Title: body.Title,
 		URL:   body.URL,
+		Tags:  body.Tags,
 	})
 }
 

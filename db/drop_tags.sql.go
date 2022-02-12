@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/gofrs/uuid"
+	"github.com/lib/pq"
 )
 
 const dropTagApply = `-- name: DropTagApply :one
@@ -23,6 +24,62 @@ type DropTagApplyParams struct {
 
 func (q *Queries) DropTagApply(ctx context.Context, arg DropTagApplyParams) (DropTag, error) {
 	row := q.db.QueryRowContext(ctx, dropTagApply, arg.DropID, arg.TagID)
+	var i DropTag
+	err := row.Scan(
+		&i.ID,
+		&i.DropID,
+		&i.TagID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const dropTagsIntersect = `-- name: DropTagsIntersect :many
+delete from drop_tags
+where drop_id = $1 and tag_id != any($2::uuid[])
+returning id, drop_id, tag_id, created_at
+`
+
+type DropTagsIntersectParams struct {
+	DropID uuid.UUID
+	TagIds []uuid.UUID
+}
+
+func (q *Queries) DropTagsIntersect(ctx context.Context, arg DropTagsIntersectParams) ([]DropTag, error) {
+	rows, err := q.db.QueryContext(ctx, dropTagsIntersect, arg.DropID, pq.Array(arg.TagIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DropTag
+	for rows.Next() {
+		var i DropTag
+		if err := rows.Scan(
+			&i.ID,
+			&i.DropID,
+			&i.TagID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const dropTagsList = `-- name: DropTagsList :one
+select id, drop_id, tag_id, created_at from drop_tags
+where drop_id = $1
+`
+
+func (q *Queries) DropTagsList(ctx context.Context, dropID uuid.UUID) (DropTag, error) {
+	row := q.db.QueryRowContext(ctx, dropTagsList, dropID)
 	var i DropTag
 	err := row.Scan(
 		&i.ID,

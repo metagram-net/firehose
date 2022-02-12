@@ -87,8 +87,10 @@ func dropEditCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.Var((*moray.UUID)(&body.ID), "id", "The drop ID")
 	cmd.MarkFlagRequired("id")
-	flags.Var(&body.Title, "title", "Set the title")
-	flags.Var(&body.URL, "url", "Set the URL")
+	flags.Var((*moray.String)(body.Title), "title", "Set the title")
+	flags.Var((*moray.String)(body.URL), "url", "Set the URL")
+	// TODO: accept names and look up IDs
+	flags.Var((*moray.UUIDs)(body.Tags), "tag", "Set the tags")
 	return cmd
 }
 

@@ -59,6 +59,8 @@ func rootCmd() *cobra.Command {
 	viper.BindPFlags(flags)
 
 	cmd.AddCommand(
+		wellknownCmd(),
+		authCmd(),
 		dropCmd(),
 	)
 	return cmd

@@ -34,7 +34,7 @@ func (s *String) String() string {
 	if s.Present {
 		return s.Value
 	}
-	return ""
+	return "<nil>"
 }
 
 //nolint:unparam // pflag.Value needs this to return an error.

@@ -2,14 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/metagram-net/firehose/drop"
 	"github.com/metagram-net/firehose/moray"
+	"github.com/metagram-net/firehose/null"
 )
 
 func dropCmd() *cobra.Command {
@@ -60,8 +59,17 @@ func dropNewCmd() *cobra.Command {
 	return cmd
 }
 
+// TODO: extract the pattern for codegen
+// res, err := fn(cmd.Context(), Client(), args)
+// moray.Exit(io, res, err)
+
 func dropEditCmd() *cobra.Command {
-	var body drop.UpdateBody
+	var args struct {
+		ID    null.UUID   `flag:"id,required" usage:"The Drop ID"`
+		Title null.String `flag:"title" usage:"Set the title"`
+		URL   null.String `flag:"url" usage:"Set the URL"`
+		Tags  moray.UUIDs `flag:"tags" usage:"Set the tags"`
+	}
 
 	cmd := &cobra.Command{
 		Use:          "edit",
@@ -76,7 +84,12 @@ func dropEditCmd() *cobra.Command {
 				return err
 			}
 
-			d, err := c.Drops.Update(ctx, body)
+			d, err := c.Drops.Update(ctx, drop.UpdateBody{
+				ID:    args.ID.Value,
+				Title: args.Title.Ptr(),
+				URL:   args.URL.Ptr(),
+				Tags:  args.Tags.Slice(),
+			})
 			if err != nil {
 				return err
 			}
@@ -84,18 +97,15 @@ func dropEditCmd() *cobra.Command {
 			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
-	flags := cmd.Flags()
-	flags.Var((*moray.UUID)(&body.ID), "id", "The drop ID")
-	cmd.MarkFlagRequired("id")
-	flags.Var((*moray.String)(body.Title), "title", "Set the title")
-	flags.Var((*moray.String)(body.URL), "url", "Set the URL")
-	// TODO: accept names and look up IDs
-	flags.Var((*moray.UUIDs)(body.Tags), "tag", "Set the tags")
+	moray.BindFlags(cmd, &args)
 	return cmd
 }
 
 func dropMoveCmd() *cobra.Command {
-	var body drop.MoveBody
+	var args struct {
+		ID     null.UUID   `flag:"id,required" usage:"The Drop ID"`
+		Status drop.Status `flag:"status" usage:"Set the status"`
+	}
 
 	cmd := &cobra.Command{
 		Use:          "move",
@@ -110,7 +120,10 @@ func dropMoveCmd() *cobra.Command {
 				return err
 			}
 
-			d, err := c.Drops.Move(ctx, body)
+			d, err := c.Drops.Move(ctx, drop.MoveBody{
+				ID:     args.ID.Value,
+				Status: args.Status,
+			})
 			if err != nil {
 				return err
 			}
@@ -118,16 +131,14 @@ func dropMoveCmd() *cobra.Command {
 			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
-	flags := cmd.Flags()
-	flags.Var((*moray.UUID)(&body.ID), "id", "The drop ID")
-	cmd.MarkFlagRequired("id")
-	flags.Var(&body.Status, "status", "Set the status")
-	cmd.MarkFlagRequired("status")
+	moray.BindFlags(cmd, &args)
 	return cmd
 }
 
 func dropDeleteCmd() *cobra.Command {
-	var body drop.DeleteBody
+	var args struct {
+		ID null.UUID `flag:"id,required" usage:"The Drop ID"`
+	}
 
 	cmd := &cobra.Command{
 		Use:          "delete",
@@ -142,7 +153,9 @@ func dropDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			d, err := c.Drops.Delete(ctx, body)
+			d, err := c.Drops.Delete(ctx, drop.DeleteBody{
+				ID: args.ID.Value,
+			})
 			if err != nil {
 				return err
 			}
@@ -150,14 +163,14 @@ func dropDeleteCmd() *cobra.Command {
 			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
-	flags := cmd.Flags()
-	flags.Var((*moray.UUID)(&body.ID), "id", "The drop ID")
-	cmd.MarkFlagRequired("id")
+	moray.BindFlags(cmd, &args)
 	return cmd
 }
 
 func dropGetCmd() *cobra.Command {
-	var id string
+	var args struct {
+		ID null.UUID `flag:"id,required" usage:"The Drop ID"`
+	}
 
 	cmd := &cobra.Command{
 		Use:          "get",
@@ -172,19 +185,17 @@ func dropGetCmd() *cobra.Command {
 				return err
 			}
 
-			res, err := c.Get(ctx, fmt.Sprintf("drops/get/%s", id))
+			d, err := c.Drops.Get(ctx, drop.GetParams{
+				ID: drop.ID(args.ID.Value),
+			})
 			if err != nil {
 				return err
 			}
-			defer res.Body.Close()
 
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
+			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
-	flags := cmd.Flags()
-	flags.StringVar(&id, "id", "", "The drop ID")
-	cmd.MarkFlagRequired("id")
+	moray.BindFlags(cmd, &args)
 	return cmd
 }
 
@@ -202,21 +213,23 @@ func dropNextCmd() *cobra.Command {
 				return err
 			}
 
-			res, err := c.Get(ctx, "drops/next")
+			d, err := c.Drops.Next(ctx)
 			if err != nil {
 				return err
 			}
-			defer res.Body.Close()
 
-			_, err = io.Copy(os.Stdout, res.Body)
-			return err
+			return json.NewEncoder(os.Stdout).Encode(d)
 		},
 	}
 	return cmd
 }
 
 func dropListCmd() *cobra.Command {
-	var body drop.ListBody
+	var args struct {
+		Status drop.Status `flag:"status" usage:"The drop status"`
+		Limit  null.Int32  `flag:"limit" usage:"The maximum number of drops"`
+		Tags   moray.UUIDs `flag:"tags" usage:"List drops with these tags"`
+	}
 
 	cmd := &cobra.Command{
 		Use:          "list",
@@ -231,7 +244,14 @@ func dropListCmd() *cobra.Command {
 				return err
 			}
 
-			res, err := c.Drops.List(ctx, body)
+			if args.Status == drop.StatusUnknown {
+				args.Status = drop.StatusUnread
+			}
+			res, err := c.Drops.List(ctx, drop.ListBody{
+				Status: args.Status,
+				Limit:  args.Limit.Ptr(),
+				Tags:   args.Tags.Slice(),
+			})
 			if err != nil {
 				return err
 			}
@@ -239,9 +259,6 @@ func dropListCmd() *cobra.Command {
 			return json.NewEncoder(os.Stdout).Encode(res)
 		},
 	}
-	flags := cmd.Flags()
-	body.Status = drop.StatusUnread
-	flags.Var(&body.Status, "status", "The drop status")
-	flags.Int32Var(&body.Limit, "limit", 5, "The number of drops to list")
+	moray.BindFlags(cmd, &args)
 	return cmd
 }

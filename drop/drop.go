@@ -209,7 +209,7 @@ func Search(ctx context.Context, q db.Queryable, user api.User, body ListBody) (
 			"drops.user_id": user.ID,
 			"tags.user_id":  user.ID,
 		}).
-		Limit(uint64(body.Limit))
+		Limit(uint64(*body.Limit))
 
 	if body.Status != StatusUnknown {
 		qq = qq.Where(sq.Eq{"drops.status": body.Status})

@@ -36,9 +36,9 @@ func (Handler) Get(ctx api.Context, u api.User, params GetParams) (Drop, error) 
 }
 
 type ListBody struct {
-	Status Status      `json:"status,omitempty"`
-	Limit  int32       `json:"limit,omitempty"`
-	Tags   []uuid.UUID `json:"tags"`
+	Status Status       `json:"status,omitempty"`
+	Limit  *int32       `json:"limit,omitempty"`
+	Tags   *[]uuid.UUID `json:"tags"`
 }
 
 type ListResponse struct {
@@ -52,9 +52,12 @@ func (Handler) List(ctx api.Context, u api.User, body ListBody) (ListResponse, e
 	// "scroll past" a few drops. But the point is to avoid scrolling for a
 	// long time to find something, so don't allow large limits here.
 	limit := int32(20)
-	if 0 < body.Limit && body.Limit < limit {
-		limit = body.Limit
+	l := body.Limit
+	if l != nil && 0 < *l && *l < limit {
+		limit = *l
 	}
+	body.Limit = &limit
+
 	q := db.New(ctx.Tx)
 
 	// The query is simpler (and probably faster?) if it doesn't have to join

@@ -2,8 +2,8 @@ services:
   db:
     image: postgres:12
     environment:
-      POSTGRES_DB: firehose_development
-      # This is only for local development, so this is fine!
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: "${PGDATABASE}"
+      POSTGRES_USER: "${PGUSER}"
+      POSTGRES_PASSWORD: "${PGPASSWORD}"
     ports:
-      - "5432:5432"
+      - "${PGPORT}:5432"
